@@ -1,0 +1,2494 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmGo — Sunum</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --green:#186A3B;--green2:#4A5429;--green-lt:#A5E9C2;--green-hl:#E2EFC9;
+  --text:#2F3E22;--muted:#8A9070;--danger:#C0392B;--warn:#D4882A;--info:#3A6EA8;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:#141d18;font-family:'DM Sans',sans-serif;}
+
+/* SLIDES */
+.deck{width:100vw;height:100vh;position:relative;}
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.6s cubic-bezier(.22,.9,.32,1), transform 0.6s cubic-bezier(.22,.9,.32,1);
+  transform:translateY(14px) scale(0.985);
+  padding:60px 60px 64px 60px;
+}
+.slide.active{opacity:1;pointer-events:all;transform:translateY(0) scale(1);}
+.slide.exit{opacity:0;transform:translateY(-10px) scale(0.99);transition:opacity 0.35s ease,transform 0.35s ease;}
+
+/* ─── FAST STAGGERED CONTENT REVEAL (cards/items animate in on slide entry) ─── */
+@keyframes riseIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.slide.active .s35-card,.slide.active .s25-item,.slide.active .flow-step,.slide.active .why-pill,
+.slide.active .s55-stat-card,.slide.active .spos-legend-item,.slide.active .s5-rival{
+  animation:riseIn 0.45s cubic-bezier(.22,.9,.32,1) both;
+}
+.slide.active .s35-card:nth-child(1),.slide.active .flow-step:nth-child(1),.slide.active .why-pill:nth-child(1),
+.slide.active .s55-stat-card:nth-child(1),.slide.active .spos-legend-item:nth-child(1),.slide.active .s5-rival:nth-child(1){animation-delay:.04s;}
+.slide.active .s35-card:nth-child(2),.slide.active .flow-step:nth-child(3),.slide.active .why-pill:nth-child(2),
+.slide.active .s55-stat-card:nth-child(2),.slide.active .spos-legend-item:nth-child(2),.slide.active .s5-rival:nth-child(2){animation-delay:.09s;}
+.slide.active .s35-card:nth-child(3),.slide.active .flow-step:nth-child(5),.slide.active .why-pill:nth-child(3),
+.slide.active .s55-stat-card:nth-child(3),.slide.active .spos-legend-item:nth-child(3),.slide.active .s5-rival:nth-child(3){animation-delay:.14s;}
+.slide.active .s35-card:nth-child(4),.slide.active .flow-step:nth-child(7),.slide.active .why-pill:nth-child(4),
+.slide.active .s55-stat-card:nth-child(4),.slide.active .spos-legend-item:nth-child(4){animation-delay:.19s;}
+.slide.active .flow-step:nth-child(9),.slide.active .why-pill:nth-child(5){animation-delay:.24s;}
+.slide.active .flow-step:nth-child(11){animation-delay:.29s;}
+.slide.active .s25-item:nth-child(2){animation-delay:.06s;}
+.slide.active .s25-item:nth-child(3){animation-delay:.11s;}
+.slide.active .s25-item:nth-child(4){animation-delay:.16s;}
+.slide.active .s25-item:nth-child(5){animation-delay:.21s;}
+.slide.active .s25-total{animation:riseIn 0.4s cubic-bezier(.22,.9,.32,1) both;animation-delay:.26s;}
+/* titles/tags settle in first, just ahead of the cards */
+.slide.active .cat-tag,.slide.active .s0-logo,.slide.active .s1-title,.slide.active .s2-title,.slide.active .s25-title,
+.slide.active .s3-title,.slide.active .s35-title,.slide.active .s4-title,.slide.active .s55-title,.slide.active .s5-title,
+.slide.active .spos-title,.slide.active .sg-title,.slide.active .s65-title,.slide.active .s6-eyebrow,.slide.active .s6-quote{
+  animation:riseIn 0.4s cubic-bezier(.22,.9,.32,1) both;
+}
+
+/* ─── AMBIENT BACKGROUND CANVASES (per-slide, content-matched) ─── */
+.ambient-bg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.cat-tag{font-size:11px;font-weight:700;color:#A5E9C2;text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;text-align:center;}
+/* ─── NEW SLIDE COMPONENTS (Why Now / Market Size / Business Model / GTM / Team / Risks) ─── */
+#swhy{background:#182a10;padding:40px 60px;}
+#smarket{background:#12281b;padding:40px 60px;}
+#sbiz{background:#172912;padding:40px 60px;}
+#sgtm{background:#162a11;padding:40px 60px;}
+#steam{background:#111829;padding:40px 60px;}
+#srisks{background:#12281d;padding:40px 60px;}
+
+.flow-wrap{display:flex;align-items:stretch;gap:6px;width:100%;max-width:1180px;flex-wrap:wrap;justify-content:center;}
+.flow-step{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+  padding:18px 12px;width:148px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.flow-step.final{border-color:#A5E9C2;box-shadow:0 0 22px rgba(165,233,194,0.18);background:rgba(165,233,194,0.06);}
+.flow-icon{width:38px;height:38px;border-radius:10px;background:rgba(165,233,194,0.1);border:1px solid rgba(165,233,194,0.22);
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:#A5E9C2;}
+.flow-label{font-size:12px;font-weight:600;color:rgba(255,255,255,0.85);line-height:1.35;}
+.flow-arrow{display:flex;align-items:center;justify-content:center;color:rgba(165,233,194,0.55);font-size:16px;width:26px;}
+.flow-note{margin-top:22px;font-size:13px;color:rgba(255,255,255,0.55);text-align:center;max-width:920px;line-height:1.6;
+  padding:12px 18px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:1000px;}
+
+/* two-column comparison, generic (reused for Market Size + Team) */
+.s25-col-header.mod-a{background:rgba(165,233,194,0.14);color:#bfe8cf;border-bottom:1px solid rgba(165,233,194,0.25);}
+.s25-col-header.mod-b{background:rgba(91,141,184,0.14);color:#bcd7ec;border-bottom:1px solid rgba(91,141,184,0.25);}
+.s25-item.mod-a .s25-item-val{color:#A5E9C2;}
+.s25-item.mod-b .s25-item-val{color:#7AAACE;}
+.s25-total.mod-a{border-top:2px solid rgba(165,233,194,0.3);}
+.s25-total.mod-b{border-top:2px solid rgba(91,141,184,0.3);}
+.s25-total.mod-a .s25-total-val{color:#A5E9C2;}
+.s25-total.mod-b .s25-total-val{color:#7AAACE;}
+.s1-content,.s25-content,.s35-content,.s55-content,.s5-content{
+  position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:100%;
+}
+.s2-wrap,.spos-title,.spos-sub,.spos-wrap,.sg-title,.sg-sub,.sg-wrap,.s65-title,.s65-sub,.s65-timeline,
+.cat-tag,.s25-title,.s25-sub,.s25-wrap,.s25-saving,.flow-wrap,.flow-note,.s35-title,.s35-sub,.grid3,.s35-grid{
+  position:relative;z-index:1;
+}
+
+/* NAV */
+.nav{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:8px;
+  background:rgba(18,40,18,0.88);backdrop-filter:blur(14px);
+  border:1px solid rgba(165,233,194,0.14);
+  border-radius:30px;padding:7px 18px;z-index:100;
+  white-space:nowrap;
+}
+#nav-dots{
+  display:flex;align-items:center;gap:5px;flex-shrink:0;
+}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.4);cursor:pointer;transition:.4s;}
+.nav-dot.active{background:#A5E9C2;transform:scale(1.4);}
+.nav-arrow{background:none;border:none;color:rgba(255,255,255,0.55);font-size:13px;cursor:pointer;padding:1px 5px;transition:.3s;}
+.nav-arrow:hover{color:#fff;}
+.nav-label{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:.5px;min-width:90px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.progress{position:fixed;top:0;left:0;height:2px;background:#A5E9C2;transition:width .7s;z-index:200;}
+.key-hint{position:fixed;bottom:58px;right:32px;font-size:10px;color:rgba(255,255,255,0.12);letter-spacing:1px;}
+
+/* ─── S0: KAPAK ─── */
+#s0{background:#192c0f;}
+#s0-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.s0-logo{font-family:'DM Serif Display',serif;font-size:100px;color:#A5E9C2;letter-spacing:-3px;line-height:1;position:relative;z-index:2;text-shadow:0 0 80px rgba(24,106,59,0.25);}
+.s0-tagline{font-size:17px;color:rgba(165,233,194,0.55);font-weight:300;margin-top:14px;letter-spacing:4px;text-transform:uppercase;position:relative;z-index:2;}
+.s0-eogs{position:absolute;top:32px;right:40px;font-size:12px;color:rgba(165,233,194,0.4);font-weight:600;letter-spacing:2px;z-index:2;}
+
+/* ─── S1: PROBLEM ─── */
+#s1{background:#182a10;padding:40px 60px;}
+.s1-title{font-family:'DM Serif Display',serif;font-size:48px;color:#fff;margin-bottom:36px;text-align:center;}
+.s1-title span{color:#A5E9C2;}
+.crash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:1140px;margin-bottom:28px;}
+.crash-card{background:rgba(192,57,43,0.09);border:1px solid rgba(192,57,43,0.28);border-radius:12px;padding:18px;}
+.crash-name{font-size:15px;font-weight:700;color:#E07060;margin-bottom:5px;}
+.crash-raised{font-size:11px;color:rgba(255,255,255,0.53);margin-bottom:10px;}
+.crash-amount{font-size:30px;font-weight:700;color:#fff;line-height:1;font-family:'DM Serif Display',serif;}
+.crash-amount span{font-size:12px;color:rgba(255,255,255,0.55);font-weight:400;font-family:'DM Sans',sans-serif;}
+.crash-fate{font-size:11px;color:#E07060;margin-top:8px;padding-top:8px;border-top:1px solid rgba(192,57,43,0.18);}
+.s1-why{display:flex;gap:10px;width:100%;max-width:1140px;}
+.why-pill{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;}
+.why-icon{font-size:20px;color:#A5E9C2;margin-bottom:7px;}
+.why-label{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;}
+.why-val{font-size:13px;font-weight:600;color:#E07060;}
+.s1-note{margin-top:18px;font-size:12px;color:rgba(255,255,255,0.46);text-align:center;font-style:italic;}
+
+/* ─── S2: SANAL SENSÖR ─── */
+#s2{background:#12281b;padding:40px 60px;}
+.s2-wrap{width:100%;max-width:1140px;}
+.s2-header{text-align:center;margin-bottom:32px;}
+.s2-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;}
+.s2-title span{color:#A5E9C2;}
+.s2-sub{font-size:13px;color:rgba(255,255,255,0.5);max-width:620px;margin:0 auto;}
+.s2-main{display:grid;grid-template-columns:1.1fr 0.9fr;gap:24px;align-items:start;}
+.s2-panel{background:rgba(255,255,255,0.03);border:1px solid rgba(165,233,194,0.18);border-radius:14px;padding:22px;}
+.s2-panel-title{font-size:10px;font-weight:700;color:#8A9070;text-transform:uppercase;letter-spacing:2px;margin-bottom:16px;}
+
+/* cost table */
+.cost-table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+.cost-table th{font-size:10px;font-weight:600;color:rgba(255,255,255,0.46);text-align:left;padding:5px 8px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.cost-table td{font-size:12px;padding:8px 8px;border-bottom:1px solid rgba(255,255,255,0.04);color:rgba(255,255,255,0.68);vertical-align:middle;}
+.cost-table tr.farmgo-row td{color:#A5E9C2;font-weight:600;background:rgba(165,233,194,0.06);}
+.cost-name{font-weight:600;color:rgba(255,255,255,0.84)!important;}
+.cost-red{color:#E07060!important;font-weight:700;}
+.cost-warn{color:#D4882A!important;}
+.cost-scale-note{font-size:11px;color:rgba(192,57,43,0.7);background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:8px;padding:10px 14px;line-height:1.6;}
+.cost-scale-note strong{color:#E07060;}
+
+/* sensor compare */
+.s2-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.s2-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.s2-row-label{font-size:13px;color:rgba(255,255,255,0.64);}
+.s2-vals{display:flex;gap:12px;align-items:center;}
+.s2-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;letter-spacing:.5px;}
+.badge-real{background:rgba(165,233,194,0.12);color:#A5E9C2;}
+.badge-pred{background:rgba(91,141,184,0.12);color:#7AAACE;}
+.s2-real,.s2-pred{font-size:22px;font-weight:700;font-family:'DM Serif Display',serif;transition:opacity .35s ease;}
+.s2-real{color:#A5E9C2;}
+.s2-pred{color:#5B8DB8;}
+.s2-fading{opacity:0;}
+.s2-arrow-sym{color:rgba(255,255,255,0.32);font-size:11px;}
+
+/* acc bar */
+.acc-bar-wrap{background:rgba(255,255,255,0.06);border-radius:6px;height:8px;margin:10px 0 6px;overflow:hidden;}
+.acc-bar{height:100%;border-radius:6px;background:linear-gradient(90deg,#4A5429,#A5E9C2);transition:width 2s cubic-bezier(.4,0,.2,1);}
+.acc-labels{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.46);margin-bottom:16px;}
+.acc-stages{display:flex;flex-direction:column;gap:7px;}
+.acc-stage{display:flex;align-items:flex-start;gap:9px;font-size:11px;}
+.acc-stage-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.acc-stage-text{color:rgba(255,255,255,0.6);line-height:1.5;}
+.acc-stage-text b{color:rgba(255,255,255,0.84);}
+.s2-chart-panel{background:rgba(255,255,255,0.03);border:1px solid rgba(165,233,194,0.18);border-radius:14px;padding:20px;height:190px;position:relative;margin-top:16px;}
+.s2-chart-title{font-size:10px;font-weight:700;color:#8A9070;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+
+/* ─── S3: EKOSİSTEM ─── */
+#s3{background:#172912;padding:40px 60px;}
+.s3-header{text-align:center;margin-bottom:36px;}
+.s3-title{font-family:'DM Serif Display',serif;font-size:46px;color:#fff;margin-bottom:6px;}
+.s3-title span{color:#A5E9C2;}
+.s3-sub{font-size:13px;color:rgba(255,255,255,0.5);}
+.feature-flow{display:flex;align-items:stretch;gap:0;width:100%;max-width:1140px;}
+.feature-node{
+  flex:1;background:rgba(255,255,255,0.025);border:1px solid rgba(165,233,194,0.12);
+  border-radius:0;padding:26px 20px;position:relative;
+  transition:background .4s,border-color .4s;
+}
+.feature-node:first-child{border-radius:14px 0 0 14px;}
+.feature-node:last-child{border-radius:0 14px 14px 0;}
+.feature-node:hover{background:rgba(165,233,194,0.07);border-color:rgba(165,233,194,0.3);}
+.feature-node-icon{
+  width:44px;height:44px;border-radius:12px;
+  background:rgba(165,233,194,0.1);border:1px solid rgba(165,233,194,0.2);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;font-size:18px;color:#A5E9C2;
+}
+.feature-node-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.3;}
+.feature-node-desc{font-size:11px;color:rgba(255,255,255,0.55);line-height:1.65;}
+.feature-node-tag{
+  display:inline-block;margin-top:12px;font-size:9px;padding:2px 8px;
+  border-radius:20px;background:rgba(165,233,194,0.1);color:#A5E9C2;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.feature-divider{display:flex;align-items:center;padding:0 2px;color:rgba(165,233,194,0.2);font-size:12px;}
+.s3-bottom{margin-top:20px;text-align:center;font-size:13px;color:rgba(255,255,255,0.4);font-style:italic;}
+.s3-bottom b{color:#A5E9C2;font-style:normal;}
+
+/* ─── S4: ÖLÇEK ─── */
+#s4{background:#162a11;padding:40px 60px;}
+.s4-header{text-align:center;margin-bottom:40px;}
+.s4-title{font-family:'DM Serif Display',serif;font-size:46px;color:#fff;margin-bottom:6px;}
+.s4-title span{color:#A5E9C2;}
+.s4-sub{font-size:13px;color:rgba(255,255,255,0.5);}
+.scale-stages{display:flex;align-items:stretch;gap:12px;width:100%;max-width:1140px;}
+.scale-stage{
+  flex:1;border:1px solid rgba(165,233,194,0.1);padding:26px 20px;
+  background:rgba(255,255,255,0.02);border-radius:14px;
+  cursor:pointer;
+  transition:all .5s cubic-bezier(.4,0,.2,1);
+  transform:scale(0.97);opacity:.65;
+}
+.scale-stage:hover,.scale-stage.active-scale{
+  background:rgba(165,233,194,0.09);border-color:rgba(165,233,194,0.4);
+  transform:scale(1.03);opacity:1;
+  box-shadow:0 8px 32px rgba(24,106,59,0.18);
+}
+.scale-tier{font-size:9px;font-weight:700;color:#8A9070;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;}
+.scale-name{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;}
+.scale-plants{font-size:42px;font-weight:800;color:#A5E9C2;line-height:1;font-family:'DM Serif Display',serif;}
+.scale-plants-label{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:14px;}
+.scale-specs{display:flex;flex-direction:column;gap:5px;}
+.scale-spec{font-size:11px;color:rgba(255,255,255,0.55);display:flex;justify-content:space-between;}
+.scale-spec span{color:rgba(255,255,255,0.76);font-weight:500;}
+.scale-bar-wrap{margin-top:14px;background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;}
+.scale-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,#4A5429,#A5E9C2);}
+.scale-same{text-align:center;margin-top:20px;font-size:13px;color:rgba(255,255,255,0.42);font-style:italic;}
+.scale-same b{color:#A5E9C2;font-style:normal;}
+
+/* ─── S5: REKABETÇİ ─── */
+#s5{background:#111829;padding:40px 60px;}
+.s5-title{font-family:'DM Serif Display',serif;font-size:46px;color:#fff;margin-bottom:6px;text-align:center;}
+.s5-title span{color:#A5E9C2;}
+.s5-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:36px;}
+.comp-table{width:100%;max-width:1100px;border-collapse:collapse;}
+.comp-table th{font-size:10px;font-weight:700;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:1.5px;padding:9px 14px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06);}
+.comp-table td{padding:12px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;}
+.comp-table tr.farmgo-row td{background:rgba(165,233,194,0.07);border-left:2px solid #A5E9C2;}
+.comp-name{font-weight:700;color:#fff;}
+.comp-name.farmgo{color:#A5E9C2;}
+.comp-check{color:#A5E9C2;font-size:15px;}
+.comp-cross{color:rgba(192,57,43,0.65);font-size:15px;}
+.comp-partial{color:#D4882A;font-size:12px;}
+.comp-tag{font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(165,233,194,0.12);color:#A5E9C2;margin-left:6px;font-weight:700;vertical-align:middle;text-transform:uppercase;letter-spacing:.5px;}
+.s5-note{margin-top:14px;font-size:11px;color:rgba(255,255,255,0.36);text-align:center;font-style:italic;max-width:900px;}
+
+/* ─── S6: VİZYON ─── */
+#s6{background:linear-gradient(160deg,#162d0e 0%,#1a2a10 50%,#162d0e 100%);}
+.s6-orb,.s6-orb2,.s6-orb3{position:absolute;border-radius:50%;pointer-events:none;will-change:transform;}
+.s6-orb {width:580px;height:580px;border:2px solid rgba(165,233,194,0.2);box-shadow:0 0 80px rgba(165,233,194,0.05) inset;}
+.s6-orb2{width:380px;height:380px;border:1.5px solid rgba(165,233,194,0.14);}
+.s6-orb3{width:180px;height:180px;border:1px solid rgba(165,233,194,0.1);}
+.s6-content{position:relative;text-align:center;max-width:800px;}
+.s6-eyebrow{font-size:11px;font-weight:700;color:#A5E9C2;text-transform:uppercase;letter-spacing:3px;margin-bottom:22px;}
+.s6-quote{font-family:'DM Serif Display',serif;font-size:46px;color:#fff;line-height:1.22;margin-bottom:28px;}
+.s6-quote em{color:#A5E9C2;font-style:italic;}
+.s6-desc{font-size:14px;color:rgba(255,255,255,0.5);line-height:1.75;max-width:580px;margin:0 auto 36px;}
+.s6-pillars{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.s6-pillar{font-size:11px;color:rgba(165,233,194,0.65);border:1px solid rgba(165,233,194,0.15);border-radius:20px;padding:5px 15px;font-weight:500;}
+.s6-logo{font-family:'DM Serif Display',serif;font-size:28px;color:#A5E9C2;margin-top:44px;letter-spacing:-.5px;}
+.s6-eogs{font-size:11px;color:rgba(255,255,255,0.36);margin-top:4px;letter-spacing:2px;}
+
+/* ─── S1 VISUAL ─── */
+#s1{background:#182a10;padding:36px 60px;}
+.s1-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:24px;text-align:center;}
+.s1-title span{color:#A5E9C2;}
+.s1-timeline{width:100%;max-width:1100px;height:220px;position:relative;margin-bottom:20px;}
+.s1-why{display:flex;gap:10px;width:100%;max-width:1100px;}
+.why-pill{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;text-align:center;}
+.why-icon{font-size:18px;color:#A5E9C2;margin-bottom:6px;}
+.why-label{font-size:10px;color:rgba(255,255,255,0.55);margin-bottom:4px;}
+.why-val{font-size:12px;font-weight:700;color:#E07060;}
+.s1-note{margin-top:14px;font-size:11px;color:rgba(255,255,255,0.42);text-align:center;font-style:italic;}
+
+/* ─── S2 VISUAL ─── */
+#s2{background:#12281b;padding:36px 60px;}
+.s2-wrap{width:100%;max-width:1100px;}
+.s2-header{text-align:center;margin-bottom:24px;}
+.s2-title{font-family:'DM Serif Display',serif;font-size:40px;color:#fff;margin-bottom:6px;}
+.s2-title span{color:#A5E9C2;}
+.s2-sub{font-size:12px;color:rgba(255,255,255,0.5);max-width:600px;margin:0 auto;}
+.s2-main{display:grid;grid-template-columns:1.1fr 0.9fr;gap:20px;align-items:start;}
+.s2-panel{background:rgba(255,255,255,0.03);border:1px solid rgba(165,233,194,0.15);border-radius:12px;padding:18px;}
+.s2-panel-title{font-size:10px;font-weight:700;color:#8A9070;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;}
+.probe-viz{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;min-height:60px;}
+.probe-dot{width:14px;height:14px;border-radius:3px;background:rgba(192,57,43,0.3);border:1px solid rgba(192,57,43,0.5);transition:all .3s;}
+.probe-dot.lit{background:rgba(192,57,43,0.7);border-color:#E07060;box-shadow:0 0 6px rgba(192,57,43,0.4);}
+.probe-counter{font-size:13px;color:rgba(255,255,255,0.64);margin-bottom:8px;}
+.probe-total{font-size:22px;font-weight:700;color:#E07060;font-family:'DM Serif Display',serif;}
+.probe-note{font-size:11px;color:rgba(192,57,43,0.6);line-height:1.6;margin-bottom:10px;padding:8px 10px;background:rgba(192,57,43,0.07);border-radius:6px;}
+.probe-farmgo{font-size:12px;color:#A5E9C2;padding:8px 10px;background:rgba(165,233,194,0.08);border-radius:6px;border:1px solid rgba(165,233,194,0.2);}
+.probe-farmgo strong{font-weight:700;}
+.acc-bar-wrap{background:rgba(255,255,255,0.06);border-radius:6px;height:7px;margin:10px 0 5px;overflow:hidden;}
+.acc-bar{height:100%;border-radius:6px;background:linear-gradient(90deg,#4A5429,#A5E9C2);transition:width 2.5s cubic-bezier(.4,0,.2,1);}
+.acc-labels{display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.46);margin-bottom:14px;}
+.acc-stages{display:flex;flex-direction:column;gap:6px;}
+.acc-stage{display:flex;align-items:flex-start;gap:8px;font-size:11px;}
+.acc-stage-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.acc-stage-text{color:rgba(255,255,255,0.55);line-height:1.5;}
+.acc-stage-text b{color:rgba(255,255,255,0.8);}
+.s2-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.05);}
+.s2-row:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none;}
+.s2-row-label{font-size:12px;color:rgba(255,255,255,0.6);}
+.s2-vals{display:flex;gap:10px;align-items:center;}
+.s2-badge{font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;}
+.badge-real{background:rgba(165,233,194,0.12);color:#A5E9C2;}
+.badge-pred{background:rgba(91,141,184,0.12);color:#7AAACE;}
+.s2-real,.s2-pred{font-size:20px;font-weight:700;font-family:'DM Serif Display',serif;transition:opacity .3s;}
+.s2-real{color:#A5E9C2;}.s2-pred{color:#5B8DB8;}
+.s2-fading{opacity:0;}
+.s2-arrow-sym{color:rgba(255,255,255,0.32);font-size:11px;}
+.s2-chart-panel{background:rgba(255,255,255,0.03);border:1px solid rgba(165,233,194,0.15);border-radius:12px;padding:16px;height:180px;}
+.s2-chart-title{font-size:10px;font-weight:700;color:#8A9070;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+
+/* ─── S3 ORBIT ─── */
+#s3{background:#172912;padding:36px 60px;}
+.s3-header{text-align:center;margin-bottom:20px;}
+.s3-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:4px;}
+.s3-title span{color:#A5E9C2;}
+.s3-sub{font-size:13px;color:rgba(255,255,255,0.5);}
+.orbit-wrap{position:relative;width:560px;height:380px;flex-shrink:0;}
+#orbitCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.orbit-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle,rgba(24,106,59,0.4),rgba(28,43,15,0.8));
+  border:2px solid rgba(165,233,194,0.4);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4;
+  box-shadow:0 0 30px rgba(24,106,59,0.25);}
+.orbit-center-logo{font-family:'DM Serif Display',serif;font-size:15px;color:#A5E9C2;font-weight:700;}
+.orbit-center-sub{font-size:9px;color:rgba(165,233,194,0.5);letter-spacing:2px;text-transform:uppercase;}
+.orbit-nodes{position:absolute;inset:0;z-index:3;}
+.orbit-node{
+  position:absolute;width:68px;height:68px;border-radius:50%;
+  background:rgba(25,44,15,0.92);border:1.5px solid rgba(165,233,194,0.3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color .3s,box-shadow .3s,transform .3s;
+  transform:translate(-50%,-50%);
+}
+.orbit-node:hover{border-color:rgba(165,233,194,0.8);box-shadow:0 0 20px rgba(24,106,59,0.35);transform:translate(-50%,-50%) scale(1.12);}
+.orbit-node-icon{font-size:18px;color:#A5E9C2;margin-bottom:3px;}
+.orbit-node-name{font-size:8px;color:rgba(255,255,255,0.68);text-align:center;line-height:1.3;max-width:56px;}
+.orbit-tooltip{
+  position:fixed;background:rgba(25,44,15,0.96);border:1px solid rgba(165,233,194,0.3);
+  border-radius:10px;padding:14px 16px;font-size:12px;color:rgba(255,255,255,0.84);
+  max-width:220px;line-height:1.6;pointer-events:none;opacity:0;transition:opacity .2s;z-index:100;
+}
+.orbit-tooltip b{color:#A5E9C2;display:block;margin-bottom:4px;font-size:13px;}
+
+/* ─── S4 PLANTS ─── */
+#s4{background:#162a11;padding:36px 60px;}
+.s4-header{text-align:center;margin-bottom:20px;}
+.s4-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:4px;}
+.s4-title span{color:#A5E9C2;}
+.s4-sub{font-size:13px;color:rgba(255,255,255,0.5);}
+.plant-stage-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;}
+.plant-tiers{display:flex;gap:8px;}
+.tier-btn{background:rgba(255,255,255,0.03);border:1px solid rgba(165,233,194,0.15);border-radius:20px;
+  color:rgba(255,255,255,0.6);padding:8px 20px;cursor:pointer;font-family:'DM Sans',sans-serif;
+  font-size:13px;transition:all .3s;}
+.tier-btn:hover{border-color:rgba(165,233,194,0.4);color:rgba(255,255,255,0.8);}
+.tier-btn.active{background:rgba(165,233,194,0.12);border-color:#A5E9C2;color:#A5E9C2;font-weight:600;}
+.plant-canvas-wrap{position:relative;width:100%;max-width:1100px;height:280px;}
+#plantCanvas{width:100%;height:100%;}
+.plant-info{position:absolute;right:0;top:50%;transform:translateY(-50%);
+  background:rgba(23,41,18,0.9);border:1px solid rgba(165,233,194,0.2);border-radius:12px;
+  padding:20px 24px;text-align:center;min-width:160px;}
+.plant-info-count{font-family:'DM Serif Display',serif;font-size:44px;color:#A5E9C2;line-height:1;}
+.plant-info-label{font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:12px;}
+.plant-info-specs{font-size:11px;color:rgba(255,255,255,0.55);line-height:2;}
+.plant-info-specs span{color:rgba(255,255,255,0.76);}
+
+
+/* ─── S5 REVİZE ─── */
+#s5{background:#111829;padding:36px 60px;}
+.s5-title{font-family:'DM Serif Display',serif;font-size:40px;color:#fff;margin-bottom:6px;text-align:center;}
+.s5-title span{color:#A5E9C2;}
+.s5-tagline{font-size:12px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:20px;font-style:italic;max-width:780px;}
+.s5-tagline em{color:rgba(165,233,194,0.7);font-style:normal;font-weight:600;}
+.s5-sections{display:flex;flex-direction:column;gap:14px;width:100%;max-width:1140px;}
+.s5-section{display:flex;flex-direction:column;gap:8px;}
+.s5-section-label{font-size:11px;font-weight:700;color:rgba(165,233,194,0.7);text-transform:uppercase;letter-spacing:1.5px;display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid rgba(165,233,194,0.12);}
+.s5-section-label-blue{color:rgba(122,172,206,0.5);}
+.s5-rivals{display:flex;gap:10px;}
+.s5-rival{flex:1;background:rgba(255,255,255,0.025);border:1px solid rgba(192,57,43,0.15);border-left:3px solid rgba(192,57,43,0.5);border-radius:10px;padding:12px 13px;}
+.s5-rival-blue{border-color:rgba(91,141,184,0.15)!important;border-left:3px solid rgba(91,141,184,0.5)!important;background:rgba(91,141,184,0.04);}
+.s5-rival-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:2px;}
+.s5-rival-type{font-size:9px;color:rgba(255,255,255,0.48);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;}
+.s5-rival-desc{font-size:11px;color:rgba(255,255,255,0.6);line-height:1.55;margin-bottom:7px;}
+.s5-rival-gap{font-size:10px;color:rgba(192,57,43,0.7);display:flex;align-items:flex-start;gap:5px;line-height:1.4;}
+.s5-rival-gap-blue{color:rgba(122,172,206,0.7);}
+.s5-farmgo-edge{
+  margin-top:14px;width:100%;max-width:1140px;
+  background:rgba(165,233,194,0.07);border:1px solid rgba(165,233,194,0.22);
+  border-radius:10px;padding:10px 16px;
+  font-size:12px;color:rgba(200,220,180,0.6);
+  display:flex;align-items:center;gap:10px;line-height:1.6;
+}
+.s5-farmgo-edge i{color:#A5E9C2;font-size:16px;flex-shrink:0;}
+.s5-farmgo-edge strong{color:#A5E9C2;}
+
+
+/* ─── S65: ŞU AN / HEDEF / VİZYON ─── */
+#s65{background:#121a28;padding:40px 60px;}
+.s65-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.s65-title span{color:#A5E9C2;}
+.s65-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:36px;}
+.s65-timeline{display:flex;align-items:stretch;gap:0;width:100%;max-width:1100px;position:relative;}
+.s65-col{flex:1;padding:24px 22px;border:1px solid rgba(165,233,194,0.12);background:rgba(255,255,255,0.02);position:relative;transition:background .3s,border-color .3s;transform:none;will-change:auto;}
+.s65-col:first-child{border-radius:14px 0 0 14px;}
+.s65-col:last-child{border-radius:0 14px 14px 0;}
+.s65-col:hover{background:rgba(165,233,194,0.05);border-color:rgba(165,233,194,0.25);}
+.s65-col.now{border-left:3px solid #A5E9C2;}
+.s65-col.near{border-left:3px solid rgba(165,233,194,0.4);}
+.s65-col.far{border-left:3px solid rgba(165,233,194,0.35);text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;backface-visibility:hidden;}
+.s65-phase{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
+.s65-col.now  .s65-phase{color:#A5E9C2;}
+.s65-col.near .s65-phase{color:rgba(165,233,194,0.55);}
+.s65-col.far  .s65-phase{color:rgba(165,233,194,0.55);}
+.s65-when{font-family:'DM Serif Display',serif;font-size:20px;color:rgba(255,255,255,0.9);margin-bottom:16px;line-height:1.3;font-weight:400;-webkit-font-smoothing:antialiased;}
+.s65-items{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+.s65-item{display:flex;align-items:flex-start;gap:7px;font-size:11px;color:rgba(255,255,255,0.72);line-height:1.5;}
+.s65-item-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.s65-col.now  .s65-item-dot{background:#A5E9C2;}
+.s65-col.near .s65-item-dot{background:rgba(165,233,194,0.45);}
+.s65-col.far  .s65-item-dot{background:rgba(165,233,194,0.45);}
+.s65-missing{border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;margin-top:4px;}
+.s65-missing-label{font-size:9px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.s65-missing-item{font-size:11px;color:rgba(255,255,255,0.6);display:flex;align-items:flex-start;gap:6px;margin-bottom:4px;}
+.s65-missing-item::before{content:'—';color:rgba(255,255,255,0.12);flex-shrink:0;}
+.s65-arrow{display:flex;align-items:center;padding:0 6px;color:rgba(165,233,194,0.2);font-size:18px;flex-shrink:0;}
+
+
+/* ─── S_POS: SEKTÖRDEKI YERİ ─── */
+#spos{background:#121b28;padding:40px 60px;}
+.spos-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.spos-title span{color:#A5E9C2;}
+.spos-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:32px;}
+.spos-wrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;width:100%;max-width:1100px;align-items:start;}
+.spos-matrix{position:relative;}
+.spos-matrix-title{font-size:10px;font-weight:700;color:rgba(165,233,194,0.45);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;}
+.spos-grid{position:relative;width:100%;aspect-ratio:1;background:rgba(255,255,255,0.02);border:1px solid rgba(165,233,194,0.12);border-radius:12px;overflow:hidden;}
+.spos-axis-x{position:absolute;bottom:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.08);}
+.spos-axis-y{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.08);}
+.spos-label-top{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,0.46);text-transform:uppercase;letter-spacing:1px;}
+.spos-label-bottom{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,0.46);text-transform:uppercase;letter-spacing:1px;}
+.spos-label-left{position:absolute;left:10px;top:50%;transform:translateY(-50%) rotate(-90deg);font-size:9px;color:rgba(255,255,255,0.46);text-transform:uppercase;letter-spacing:1px;}
+.spos-label-right{position:absolute;right:10px;top:50%;transform:translateY(-50%) rotate(90deg);font-size:9px;color:rgba(255,255,255,0.46);text-transform:uppercase;letter-spacing:1px;}
+.spos-dot{position:absolute;border-radius:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;cursor:default;transition:all .3s;}
+.spos-dot-label{position:absolute;font-size:10px;font-weight:600;white-space:nowrap;font-family:'DM Sans',sans-serif;}
+.spos-legend{display:flex;flex-direction:column;gap:10px;}
+.spos-legend-title{font-size:10px;font-weight:700;color:rgba(165,233,194,0.45);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;}
+.spos-legend-item{background:rgba(255,255,255,0.025);border:1px solid rgba(165,233,194,0.1);border-radius:10px;padding:12px 14px;}
+.spos-legend-item.farmgo{background:rgba(165,233,194,0.08);border-color:rgba(165,233,194,0.3);}
+.spos-legend-name{font-size:13px;font-weight:600;color:#fff;margin-bottom:5px;display:flex;align-items:center;gap:8px;}
+.spos-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.spos-legend-desc{font-size:11px;color:rgba(255,255,255,0.55);line-height:1.6;}
+.spos-legend-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;}
+.spos-legend-tag{font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.6);font-weight:600;}
+.spos-legend-tag.plus{background:rgba(165,233,194,0.12);color:#A5E9C2;}
+.spos-legend-tag.minus{background:rgba(192,57,43,0.1);color:#E07060;}
+
+/* ─── SGANTT: ZAMAN ÇİZELGESİ ─── */
+#sgantt{background:#12281d;padding:36px 60px;}
+.sg-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.sg-title span{color:#A5E9C2;}
+.sg-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:28px;}
+.sg-wrap{width:100%;max-width:1140px;}
+.sg-header{display:grid;grid-template-columns:160px 1fr;gap:0;margin-bottom:8px;}
+.sg-header-label{font-size:9px;color:rgba(165,233,194,0.4);text-transform:uppercase;letter-spacing:1.5px;}
+.sg-quarters{display:grid;gap:0;}
+.sg-q-label{font-size:9px;color:rgba(255,255,255,0.46);text-align:center;padding:0 2px;}
+.sg-rows{display:flex;flex-direction:column;gap:5px;}
+.sg-row{display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:center;}
+.sg-row-label{font-size:11px;color:rgba(255,255,255,0.68);text-align:right;padding-right:10px;line-height:1.3;}
+.sg-track{position:relative;height:26px;background:rgba(255,255,255,0.03);border-radius:4px;border:1px solid rgba(255,255,255,0.05);}
+.sg-bar{position:absolute;top:3px;height:20px;border-radius:3px;display:flex;align-items:center;padding:0 7px;font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;}
+.sg-bar.done{background:rgba(165,233,194,0.35);border:1px solid rgba(165,233,194,0.5);color:#c8ddb0;}
+.sg-bar.doing{background:rgba(165,233,194,0.15);border:1px solid rgba(165,233,194,0.3);color:#A5E9C2;
+  background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(165,233,194,0.08) 4px,rgba(165,233,194,0.08) 8px);}
+.sg-bar.plan{background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.32);color:rgba(255,255,255,0.5);}
+.sg-bar.milestone{background:rgba(212,136,42,0.2);border:1px solid rgba(212,136,42,0.5);color:#D4882A;}
+.sg-section{font-size:9px;font-weight:700;color:rgba(165,233,194,0.35);text-transform:uppercase;letter-spacing:2px;margin:10px 0 5px 168px;}
+.sg-now-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(165,233,194,0.5);pointer-events:none;z-index:10;}
+.sg-now-label{position:absolute;top:-18px;transform:translateX(-50%);font-size:9px;color:#A5E9C2;font-weight:700;white-space:nowrap;}
+.sg-legend{display:flex;gap:16px;margin-top:14px;justify-content:center;}
+.sg-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.55);}
+.sg-legend-bar{width:20px;height:10px;border-radius:2px;}
+
+
+/* ─── S55: BOYUTLAR ─── */
+#s55{background:#12281f;padding:40px 60px;}
+.s55-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.s55-title span{color:#A5E9C2;}
+.s55-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:32px;max-width:800px;}
+.s55-wrap{display:grid;grid-template-columns:1.4fr 0.6fr;gap:24px;width:100%;max-width:1100px;align-items:center;}
+.s55-left{display:flex;flex-direction:column;gap:18px;}
+.s55-compare-row{display:flex;align-items:flex-start;gap:16px;}
+.s55-row-lbl{font-size:12px;color:rgba(255,255,255,0.6);width:160px;flex-shrink:0;padding-top:4px;}
+.s55-bars{flex:1;display:flex;flex-direction:column;gap:5px;}
+.s55-bar-item{display:flex;align-items:center;gap:8px;}
+.s55-bar-track{flex:1;height:28px;background:rgba(255,255,255,0.04);border-radius:5px;overflow:hidden;}
+.s55-bar-fill{height:100%;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:600;min-width:60px;}
+.s55-trad{background:rgba(192,57,43,0.4);border:1px solid rgba(192,57,43,0.4);color:#ffb0a0;}
+.s55-farm{background:rgba(165,233,194,0.4);border:1px solid rgba(165,233,194,0.4);color:#c8e8a8;}
+.s55-bar-tag{font-size:10px;color:rgba(255,255,255,0.46);width:120px;flex-shrink:0;}
+.s55-right{display:flex;flex-direction:column;gap:12px;}
+.s55-stat-card{background:rgba(255,255,255,0.025);border:1px solid rgba(165,233,194,0.14);border-radius:12px;padding:16px 18px;}
+.s55-stat-val{font-family:'DM Serif Display',serif;font-size:32px;color:#A5E9C2;line-height:1;margin-bottom:4px;}
+.s55-stat-lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,0.72);margin-bottom:3px;}
+.s55-stat-sub{font-size:10px;color:rgba(255,255,255,0.46);}
+
+
+/* ─── S25: MALİYET GERÇEĞİ ─── */
+#s25{background:#122818;padding:40px 60px;}
+.s25-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.s25-title span{color:#A5E9C2;}
+.s25-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:28px;}
+.s25-wrap{display:grid;grid-template-columns:1fr 1fr;gap:22px;width:100%;max-width:1140px;}
+.s25-col{display:flex;flex-direction:column;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;}
+.s25-col-header{font-size:15px;font-weight:700;color:#fff;padding:14px 16px;display:flex;align-items:center;}
+.s25-col-header.trad{background:rgba(192,57,43,0.14);color:#ffb0a0;border-bottom:1px solid rgba(192,57,43,0.22);}
+.s25-col-header.farm{background:rgba(165,233,194,0.14);color:#c8e8a8;border-bottom:1px solid rgba(165,233,194,0.22);}
+.s25-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.s25-item-name{font-size:13px;color:rgba(255,255,255,0.87);font-weight:500;line-height:1.35;}
+.s25-item-sub{font-size:10px;color:rgba(255,255,255,0.52);margin-top:3px;line-height:1.45;}
+.s25-item-val{font-family:'DM Serif Display',serif;font-size:16px;font-weight:700;color:#fff;white-space:nowrap;flex-shrink:0;}
+.s25-item.trad .s25-item-val{color:#E07060;}
+.s25-item.farm .s25-item-val{color:#A5E9C2;}
+.s25-total{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;padding:14px 16px;background:rgba(255,255,255,0.03);margin-top:2px;}
+.s25-total.trad{border-top:2px solid rgba(192,57,43,0.3);}
+.s25-total.farm{border-top:2px solid rgba(165,233,194,0.3);}
+.s25-total-label{font-size:12px;color:rgba(255,255,255,0.68);text-transform:uppercase;letter-spacing:1px;}
+.s25-total-val{font-family:'DM Serif Display',serif;font-size:26px;font-weight:700;}
+.s25-total.trad .s25-total-val{color:#E07060;}
+.s25-total.farm .s25-total-val{color:#A5E9C2;}
+.s25-total-period{font-size:10px;color:rgba(255,255,255,0.52);width:100%;margin-top:5px;}
+.s25-saving{margin-top:20px;font-size:15px;color:#A5E9C2;text-align:center;max-width:920px;line-height:1.65;padding:14px 22px;background:rgba(165,233,194,0.07);border:1px solid rgba(165,233,194,0.18);border-radius:10px;}
+.s25-saving b{color:#fff;}
+
+
+/* ─── GENEL OKUNABILIRLIK — TAHTA MODU ─── */
+.s1-title{font-size:46px!important;}
+.s25-item-name{font-size:14px!important;}
+.s25-item-val{font-size:22px!important;}
+.s25-item-sub{font-size:11px!important;}
+.s25-saving{font-size:15px!important;}
+.s35-spec{font-size:12px!important;}
+.s35-gain{font-size:12px!important;}
+.s35-name{font-size:17px!important;}
+.s55-row-lbl{font-size:13px!important;}
+.s55-bar-fill span{font-size:13px!important;}
+.s55-bar-tag{font-size:11px!important;}
+.s55-stat-val{font-size:34px!important;}
+.s55-stat-lbl{font-size:13px!important;}
+.s55-stat-sub{font-size:11px!important;}
+.s5-rival-desc{font-size:12px!important;}
+.s5-rival-gap{font-size:11px!important;}
+.s5-tagline{font-size:14px!important;}
+.s65-item{font-size:13px!important;}
+.s65-missing-item{font-size:12px!important;}
+.spos-legend-desc{font-size:12px!important;}
+.sg-q-label{font-size:10px!important;}
+.sg-row-label{font-size:12px!important;}
+.sg-bar{font-size:11px!important;}
+.orbit-node-name{font-size:9px!important;}
+.s2-panel-title{font-size:11px!important;}
+.acc-stage-text{font-size:12px!important;}
+.s2-row-label{font-size:13px!important;}
+
+
+/* ─── S35: SENARYOLAR ─── */
+#s35{background:#192812;padding:40px 60px;}
+.s35-title{font-family:'DM Serif Display',serif;font-size:44px;color:#fff;margin-bottom:6px;text-align:center;}
+.s35-title span{color:#A5E9C2;}
+.s35-sub{font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:28px;}
+.s35-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:1140px;}
+.s35-card{background:rgba(255,255,255,0.025);border:1px solid rgba(165,233,194,0.14);border-radius:14px;padding:20px 16px;display:flex;flex-direction:column;transition:all .35s;cursor:default;}
+.s35-card:hover{background:rgba(165,233,194,0.07);border-color:rgba(165,233,194,0.35);transform:translateY(-3px);}
+.s35-icon{width:46px;height:46px;border-radius:12px;background:rgba(165,233,194,0.1);border:1px solid rgba(165,233,194,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;color:#A5E9C2;margin-bottom:13px;}
+.s35-user{font-size:9px;font-weight:700;color:rgba(165,233,194,0.5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
+.s35-name{font-size:16px;font-weight:600;color:#fff;margin-bottom:8px;line-height:1.3;}
+.s35-system{font-size:11px;color:rgba(165,233,194,0.65);margin-bottom:11px;font-style:italic;}
+.s35-specs{display:flex;flex-direction:column;gap:4px;margin-bottom:13px;}
+.s35-spec{font-size:11px;color:rgba(255,255,255,0.55);display:flex;justify-content:space-between;}
+.s35-spec span{color:rgba(255,255,255,0.76);font-weight:500;}
+.s35-gain{margin-top:auto;padding:8px 10px;background:rgba(165,233,194,0.07);border:1px solid rgba(165,233,194,0.18);border-radius:7px;font-size:11px;color:#A5E9C2;line-height:1.55;}
+
+
+/* S2 static maliyet görsel */
+.s2-cost-compare{display:flex;flex-direction:column;gap:4px;margin:10px 0;}
+.s2-cost-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.s2-cost-label{color:rgba(255,255,255,0.68);}
+.s2-cost-val{font-family:'DM Serif Display',serif;font-size:20px;font-weight:700;}
+.s2-cost-red{color:#E07060;}
+.s2-cost-green{color:#A5E9C2;}
+.s2-cost-bar-wrap{height:10px;background:rgba(255,255,255,0.05);border-radius:5px;overflow:hidden;}
+.s2-cost-bar{height:100%;border-radius:5px;transition:width 1s ease;}
+.s2-cost-bar-red{background:linear-gradient(90deg,rgba(192,57,43,0.6),rgba(192,57,43,0.4));}
+.s2-cost-bar-green{background:linear-gradient(90deg,rgba(165,233,194,0.7),rgba(165,233,194,0.5));}
+.s2-cost-note{font-size:11px;color:rgba(192,57,43,0.6);margin-top:10px;padding:7px 10px;background:rgba(192,57,43,0.07);border-radius:6px;line-height:1.6;}
+/* S2 model stages */
+.s2-stages-visual{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.s2-stage-item{display:flex;flex-direction:column;gap:3px;}
+.s2-stage-bar{height:8px;border-radius:4px;background:linear-gradient(90deg,#4A5429,#A5E9C2);transition:width 1.2s ease;}
+.s2-stage-label{font-size:12px;color:rgba(255,255,255,0.64);line-height:1.4;}
+.s2-stage-label b{color:rgba(255,255,255,0.84);}
+
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck"><!-- ─── S0: KAPAK ─── -->
+<div class="slide active" id="s0">
+  <canvas id="s0-canvas"></canvas>
+  <div class="s0-eogs">EOGS TK</div>
+  <div class="s0-logo">FarmGo</div>
+  <div class="s0-tagline">Otonom & Ölçeklenebilir Dikey Tarım Ekosistemi</div>
+
+</div>
+
+<!-- ─── S1: PROBLEM ─── -->
+<div class="slide" id="s1">
+  <canvas id="s1-bg" class="ambient-bg"></canvas>
+  <div class="s1-content">
+  <div class="cat-tag">Problem</div>
+  <div class="s1-title">Sektör <span>neden batıyor?</span></div>
+  <div class="s1-timeline" id="s1-timeline"></div>
+  <div class="s1-why">
+    <div class="why-pill"><div class="why-icon"><i class="fa-solid fa-bolt"></i></div><div class="why-label">Aylık elektrik gideri</div><div class="why-val">$10K–20K/ay</div></div>
+    <div class="why-pill"><div class="why-icon"><i class="fa-solid fa-building-columns"></i></div><div class="why-label">Kurulum sermayesi</div><div class="why-val">Öngörülemez CapEx</div></div>
+    <div class="why-pill"><div class="why-icon"><i class="fa-solid fa-flask"></i></div><div class="why-label">Sensör & kalibrasyon</div><div class="why-val">Sürekli bakım</div></div>
+    <div class="why-pill"><div class="why-icon"><i class="fa-solid fa-chart-line-down"></i></div><div class="why-label">VC yatırımı 2021→2024</div><div class="why-val">$2.9B → $329M</div></div>
+    <div class="why-pill"><div class="why-icon"><i class="fa-solid fa-robot"></i></div><div class="why-label">Aşırı otomasyon</div><div class="why-val">Model kanıtlanmadan</div></div>
+  </div>
+  <div class="s1-note">2025'te tek yılda 14 iç mekan tarım şirketi iflas etti — toplam batık: $1.37 milyar+</div>
+  </div>
+</div>
+
+<!-- ─── S2: SANAL SENSÖR ─── -->
+<div class="slide" id="s2">
+  <canvas id="s2-bg" class="ambient-bg"></canvas>
+  <div class="s2-wrap">
+    <div class="s2-header">
+      <div class="cat-tag">Çözüm</div>
+      <div class="s2-title">Sanal Sensör — <span>Soft Sensor Teknolojisi</span></div>
+      <div class="s2-sub">Fiziksel pH/EC probu olmadan, çevresel verilerden kimyasal değerleri tahmin eden, veriyle olgunlaşan sistem.</div>
+    </div>
+    <div class="s2-main">
+      <div>
+        <div class="s2-panel" style="margin-bottom:14px">
+          <div class="s2-panel-title">50 Kanal Kurulum — Maliyet Karşılaştırması</div>
+          <div class="s2-cost-compare">
+            <div class="s2-cost-row">
+              <div class="s2-cost-label">Geleneksel: 50 pH + 50 EC prob</div>
+              <div class="s2-cost-val s2-cost-red">₺22.500+</div>
+            </div>
+            <div class="s2-cost-bar-wrap"><div class="s2-cost-bar s2-cost-bar-red" style="width:100%"></div></div>
+            <div class="s2-cost-row" style="margin-top:10px">
+              <div class="s2-cost-label">FarmGo: DHT22 + DS18B20 + ultrasonik</div>
+              <div class="s2-cost-val s2-cost-green">~₺970</div>
+            </div>
+            <div class="s2-cost-bar-wrap"><div class="s2-cost-bar s2-cost-bar-green" style="width:4%"></div></div>
+          </div>
+          <div class="s2-cost-note">Her 6–12 ayda prob yenileme + kalibrasyon = sürekli maliyet. FarmGo: yazılımsal tahmin, prob yok.</div>
+        </div>
+        <div class="s2-panel">
+          <div class="s2-panel-title">Model Olgunlaşması</div>
+          <div class="s2-stages-visual">
+            <div class="s2-stage-item">
+              <div class="s2-stage-bar" style="width:18%"></div>
+              <div class="s2-stage-label"><b>500 ölçüm</b> — Kaba tahmin, yüksek hata</div>
+            </div>
+            <div class="s2-stage-item">
+              <div class="s2-stage-bar" style="width:52%"></div>
+              <div class="s2-stage-label"><b>5.000 ölçüm</b> — Gündüz/gece döngüleri öğrenilir</div>
+            </div>
+            <div class="s2-stage-item">
+              <div class="s2-stage-bar" style="width:91%"></div>
+              <div class="s2-stage-label"><b>50.000+ ölçüm</b> — Mevsimsel drift, bitki fazları. Endüstriyel hassasiyet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="s2-panel" style="margin-bottom:14px">
+          <div class="s2-panel-title">Anlık Karşılaştırma</div>
+          <div class="s2-row">
+            <div class="s2-row-label">pH</div>
+            <div class="s2-vals">
+              <span class="s2-badge badge-real">Gerçek</span>
+              <span class="s2-real" id="ph-real">6.12</span>
+              <span class="s2-arrow-sym">→</span>
+              <span class="s2-badge badge-pred">Tahmin</span>
+              <span class="s2-pred" id="ph-pred">6.09</span>
+            </div>
+          </div>
+          <div class="s2-row">
+            <div class="s2-row-label">EC (mS/cm)</div>
+            <div class="s2-vals">
+              <span class="s2-badge badge-real">Gerçek</span>
+              <span class="s2-real" id="ec-real">1.34</span>
+              <span class="s2-arrow-sym">→</span>
+              <span class="s2-badge badge-pred">Tahmin</span>
+              <span class="s2-pred" id="ec-pred">1.31</span>
+            </div>
+          </div>
+          <div class="s2-row">
+            <div class="s2-row-label">RMSE (pH)</div>
+            <div class="s2-vals">
+              <span class="s2-real" id="rmse-val" style="font-size:18px">0.041</span>
+              <span class="s2-real" id="rmse-ec-val" style="font-size:18px;margin-left:12px">0.038</span>
+              <span style="font-size:10px;color:rgba(255,255,255,0.46);margin-left:5px">EC</span>
+            </div>
+          </div>
+        </div>
+        <div class="s2-panel" style="height:160px;overflow:hidden">
+          <div class="s2-panel-title">Doğruluk Eğrisi</div>
+          <canvas id="accuracyChart" style="width:100%;height:130px"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── S2.5: MALİYET GERÇEĞİ ─── -->
+<div class="slide" id="s25">
+  <canvas id="s25-bg" class="ambient-bg"></canvas>
+  <div class="s25-content">
+  <div class="cat-tag">Çözüm — Maliyet Kanıtı</div>
+  <div class="s25-title">Gerçek <span>Maliyet Tablosu</span></div>
+  <div class="s25-sub">10 NFT kanallı küçük ticari sistem — Türkiye piyasa fiyatları, 2026</div>
+  <div class="s25-wrap">
+    <div class="s25-col">
+      <div class="s25-col-header trad"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px"></i>Geleneksel Hidroponik Kurulum</div>
+      <div class="s25-item trad"><div><div class="s25-item-name">NFT kanalı / raf iskelet altyapısı</div><div class="s25-item-sub">PVC kanal (100mm, 10 hat), taşıyıcı demir profil, bağlantı</div></div><div class="s25-item-val">₺8.500</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">Pompa + hortum + vana seti</div><div class="s25-item-sub">Dalgıç pompa, dağıtım hattı, geri dönüş hortumu</div></div><div class="s25-item-val">₺2.200</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">pH prob seti (×10 kanal)</div><div class="s25-item-sub">Her kanal için ayrı — 6–12 ayda yenileme gerekir</div></div><div class="s25-item-val">₺13.000</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">EC / TDS prob seti (×10 kanal)</div><div class="s25-item-sub">3–6 ayda bir yenileme, kalibrasyon buffer ayrıca</div></div><div class="s25-item-val">₺9.500</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">Kontrol ünitesi + PLC</div><div class="s25-item-sub">Kapalı sistem, özel yazılım lisansı</div></div><div class="s25-item-val">₺18.000</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">Pompa, vana, hortum seti</div><div class="s25-item-sub">Ana pompa + dağıtım hattı</div></div><div class="s25-item-val">₺4.800</div></div>
+      <div class="s25-item trad"><div><div class="s25-item-name">Yıllık prob bakım & yenileme</div><div class="s25-item-sub">Prob değişimi + buffer solüsyon + teknik servis</div></div><div class="s25-item-val">₺11.200/yıl</div></div>
+      <div class="s25-total trad">
+        <div class="s25-total-label">Kurulum Toplam</div>
+        <div class="s25-total-val">₺46.000</div>
+        <div class="s25-total-period">+ yıllık ₺11.200 prob bakım OpEx</div>
+      </div>
+    </div>
+    <div class="s25-col">
+      <div class="s25-col-header farm"><i class="fa-solid fa-seedling" style="margin-right:6px"></i>FarmGo Modeli</div>
+      <div class="s25-item farm"><div><div class="s25-item-name">NFT kanalı / raf iskelet altyapısı</div><div class="s25-item-sub">Aynı fiziksel altyapı — bu maliyet her iki sistemde eşit</div></div><div class="s25-item-val">₺8.500</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">Pompa + hortum + vana seti</div><div class="s25-item-sub">Aynı fiziksel bileşenler — bu maliyet eşit</div></div><div class="s25-item-val">₺2.200</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">pH / EC prob — Soft Sensor ile kaldırıldı</div><div class="s25-item-sub">Sıcaklık, nem, su sıcaklığı verilerinden tahmin — pahalı prob gerekmez</div></div><div class="s25-item-val" style="color:#A5E9C2;font-size:14px">Gerekmiyor</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">ESP32 + DHT22 + DS18B20</div><div class="s25-item-sub">Sıcaklık, nem, su sıcaklığı — soft sensor girdileri</div></div><div class="s25-item-val">₺650</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">Ultrasonik + akış sensörü</div><div class="s25-item-sub">Su seviyesi takibi ve pompa güvencesi</div></div><div class="s25-item-val">₺320</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">Röle modülü + kablo + terminal</div><div class="s25-item-sub">Otomasyon çıkış katmanı</div></div><div class="s25-item-val">₺420</div></div>
+      <div class="s25-item farm"><div><div class="s25-item-name">Yıllık bakım</div><div class="s25-item-sub">Yazılım güncelleme otomatik — fiziksel bakım yok</div></div><div class="s25-item-val">~₺0/yıl</div></div>
+      <div class="s25-total farm">
+        <div class="s25-total-label">Kurulum Toplam</div>
+        <div class="s25-total-val">₺12.090</div>
+        <div class="s25-total-period">Yıllık pH/EC prob bakım maliyeti: yok</div>
+      </div>
+    </div>
+  </div>
+  <div class="s25-saving">Fiziksel altyapı her iki sistemde eşit — fark sensör ve kontrol katmanında. İlk kurulumda <b>₺33.910 tasarruf</b>, 3 yılda pH/EC prob bakımı dahil: <b>₺67.000+</b></div>
+  </div>
+</div>
+
+<!-- ─── SWHY: NEDEN ŞİMDİ? ─── -->
+<div class="slide" id="swhy">
+  <canvas id="swhy-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Neden Şimdi?</div>
+  <div class="s25-title">Zamanlama <span>Tesadüf Değil</span></div>
+  <div class="s25-sub">Altı eğilim aynı anda bir araya geldi — ve hepsi FarmGo'yu şu an uygulanabilir kılıyor.</div>
+  <div class="flow-wrap">
+    <div class="flow-step"><div class="flow-icon"><i class="fa-solid fa-earth-europe"></i></div><div class="flow-label">İklim<br>değişikliği</div></div>
+    <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="flow-step"><div class="flow-icon"><i class="fa-solid fa-droplet-slash"></i></div><div class="flow-label">Su kaynakları<br>azalıyor</div></div>
+    <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="flow-step"><div class="flow-icon"><i class="fa-solid fa-utensils"></i></div><div class="flow-label">Gıda talebi<br>artıyor</div></div>
+    <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="flow-step"><div class="flow-icon"><i class="fa-solid fa-industry"></i></div><div class="flow-label">Modern sera<br>yatırımı artıyor</div></div>
+    <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="flow-step"><div class="flow-icon"><i class="fa-solid fa-microchip"></i></div><div class="flow-label">AI/IoT maliyeti<br>düşüyor</div></div>
+    <div class="flow-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="flow-step final"><div class="flow-icon"><i class="fa-solid fa-seedling"></i></div><div class="flow-label">FarmGo artık<br>uygulanabilir</div></div>
+  </div>
+  <div class="flow-note">VC yatırımı 2021→2024 arasında donanım-ağır, kanıtlanmamış otomasyon bahislerinden çekildi — bu kategoriyi öldürmedi, tam tersine <b>sensör-bağımsız, yazılım-öncelikli</b> yaklaşımların önünü açtı. FarmGo bu boşlukta konumlanıyor.</div>
+</div>
+
+<!-- ─── SMARKET: PAZAR BÜYÜKLÜĞÜ ─── -->
+<div class="slide" id="smarket">
+  <canvas id="smarket-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Pazar Büyüklüğü</div>
+  <div class="s25-title">Küçük ama <span>Hızla Büyüyen Bir Pazar</span></div>
+  <div class="s25-sub">Türkiye'de sera altyapısının yalnızca %2,7'si modern — geri kalanı dönüşüm fırsatı.</div>
+  <div class="s25-wrap">
+    <div class="s25-col">
+      <div class="s25-col-header mod-a">🇹🇷 Türkiye</div>
+      <div class="s25-item mod-a">
+        <div><div class="s25-item-name">Örtüaltı (sera) alanı</div><div class="s25-item-sub">Dünyada 4.–5. sırada</div></div>
+        <div class="s25-item-val">~811.000 dekar</div>
+      </div>
+      <div class="s25-item mod-a">
+        <div><div class="s25-item-name">Modern (bilgisayar kontrollü) sera</div><div class="s25-item-sub">Toplam seranın yalnızca %2,7'si</div></div>
+        <div class="s25-item-val">~13–22 bin dekar</div>
+      </div>
+      <div class="s25-item mod-a">
+        <div><div class="s25-item-name">Topraksız (hidroponik) üretim</div><div class="s25-item-sub">51 ilde üretim, %30'u Antalya</div></div>
+        <div class="s25-item-val">~1.200–4.000 ha</div>
+      </div>
+      <div class="s25-total mod-a">
+        <div class="s25-total-label">Dönüşüm Fırsatı</div>
+        <div class="s25-total-val">%97,3</div>
+        <div class="s25-total-period">Seranın hâlâ geleneksel olan kısmı</div>
+      </div>
+    </div>
+    <div class="s25-col">
+      <div class="s25-col-header mod-b">🌍 Dünya</div>
+      <div class="s25-item mod-b">
+        <div><div class="s25-item-name">Hydroponics Market</div><div class="s25-item-sub">Küresel topraksız tarım pazarı</div></div>
+        <div class="s25-item-val">~$6–9B</div>
+      </div>
+      <div class="s25-item mod-b">
+        <div><div class="s25-item-name">Smart Greenhouse Market</div><div class="s25-item-sub">Akıllı/otomasyonlu sera pazarı</div></div>
+        <div class="s25-item-val">~$2–6B</div>
+      </div>
+      <div class="s25-item mod-b">
+        <div><div class="s25-item-name">AgriTech Market</div><div class="s25-item-sub">Genel tarım teknolojisi pazarı</div></div>
+        <div class="s25-item-val">~$18–24B</div>
+      </div>
+      <div class="s25-total mod-b">
+        <div class="s25-total-label">Yıllık Büyüme (CAGR)</div>
+        <div class="s25-total-val">%10–15</div>
+        <div class="s25-total-period">Kaynağa göre değişmekle birlikte</div>
+      </div>
+    </div>
+  </div>
+  <div class="s25-saving" style="color:rgba(255,255,255,0.45);font-size:12px;">Not: Pazar araştırma raporları metodolojiye göre büyük farklılık gösteriyor (bazı kaynaklarda $2,9B–$17,8B arası). Rakamlar Precedence Research / Grand View Research gibi kaynaklara dayanır; sunum öncesi güncel veriyle teyit edilmelidir.</div>
+</div>
+
+<!-- ─── S3: EKOSİSTEM ─── -->
+<div class="slide" id="s3">
+  <div class="s3-header">
+    <div class="cat-tag">Ürün</div>
+    <div class="s3-title">FarmGo <span>Ekosistemi</span></div>
+    <div class="s3-sub">Birbirine bağlı, entegre üretim altyapısı — hover ile keşfedin.</div>
+  </div>
+  <div class="orbit-wrap" id="orbitWrap">
+    <canvas id="orbitCanvas"></canvas>
+    <div class="orbit-center"><div class="orbit-center-logo">FarmGo</div><div class="orbit-center-sub">Core</div></div>
+    <div class="orbit-nodes" id="orbitNodes"></div>
+  </div>
+  <div class="orbit-tooltip" id="orbitTooltip"></div>
+</div>
+
+<!-- ─── S3.5: KULLANIM SENARYOLARI ─── -->
+<div class="slide" id="s35">
+  <canvas id="s35-bg" class="ambient-bg"></canvas>
+  <div class="s35-content">
+  <div class="cat-tag">Müşteri Segmentleri</div>
+  <div class="s35-title">Kim İçin, <span>Nasıl?</span></div>
+  <div class="s35-sub">Aynı yazılım altyapısı — farklı kullanıcı, farklı fiziksel konfigürasyon.</div>
+  <div class="s35-grid">
+
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-home"></i></div>
+      <div class="s35-user">Kişisel Kullanıcı</div>
+      <div class="s35-name">Balkon / Ev Bahçesi</div>
+      <div class="s35-system">Dikey Sütun Sistemi</div>
+      <div class="s35-specs">
+        <div class="s35-spec">Alan <span>0.5–2 m²</span></div>
+        <div class="s35-spec">Kapasite <span>8–16 bitki</span></div>
+        <div class="s35-spec">Sistem <span>PVC dikey sütun</span></div>
+        <div class="s35-spec">Kurulum <span>1 gün, DIY</span></div>
+        <div class="s35-spec">Aylık maliyet <span>~₺150 elektrik</span></div>
+      </div>
+      <div class="s35-gain">Kendi sebzesini yetiştiriyor, market bağımlılığı azalıyor. Sistem tamamen otonom — günlük 5 dk bakım.</div>
+    </div>
+
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-utensils"></i></div>
+      <div class="s35-user">Küçük İşletme</div>
+      <div class="s35-name">Restoran / Kafe</div>
+      <div class="s35-system">Kompakt Raf Sistemi</div>
+      <div class="s35-specs">
+        <div class="s35-spec">Alan <span>2–6 m²</span></div>
+        <div class="s35-spec">Kapasite <span>40–80 bitki</span></div>
+        <div class="s35-spec">Sistem <span>Çok katmanlı raf NFT</span></div>
+        <div class="s35-spec">Kurulum <span>2–3 gün</span></div>
+        <div class="s35-spec">Tasarruf <span>%40–60 tedarik maliyeti</span></div>
+      </div>
+      <div class="s35-gain">Taze malzeme garantisi, tedarikçi bağımlılığı sona eriyor. "Kendi bahçemizden" menü hikayesi.</div>
+    </div>
+
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-tractor"></i></div>
+      <div class="s35-user">Küçük Üretici</div>
+      <div class="s35-name">Sera / Bahçe İşletmesi</div>
+      <div class="s35-system">NFT Kanal Sistemi</div>
+      <div class="s35-specs">
+        <div class="s35-spec">Alan <span>20–100 m²</span></div>
+        <div class="s35-spec">Kapasite <span>300–800 bitki</span></div>
+        <div class="s35-spec">Sistem <span>Yatay NFT, çoklu hat</span></div>
+        <div class="s35-spec">Kurulum <span>1–2 hafta</span></div>
+        <div class="s35-spec">Hasat <span>Yılda 6–10 döngü</span></div>
+      </div>
+      <div class="s35-gain">Yapraklı sebzede toprak tarımına kıyasla 4–8× alan verimi (dikey kata göre). Kış aylarında kesintisiz üretim. pH/EC prob maliyeti yok — soft sensor ile çalışır.</div>
+    </div>
+
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-industry"></i></div>
+      <div class="s35-user">Ticari / Endüstriyel</div>
+      <div class="s35-name">Fabrikasyon Üretim Tesisi</div>
+      <div class="s35-system">Çok Katmanlı Raf + Tam Otomasyon</div>
+      <div class="s35-specs">
+        <div class="s35-spec">Alan <span>200–2.000 m²</span></div>
+        <div class="s35-spec">Kapasite <span>5.000–30.000 bitki</span></div>
+        <div class="s35-spec">Sistem <span>A-frame raf, konveyör</span></div>
+        <div class="s35-spec">Kurulum <span>Modüler, aşamalı</span></div>
+        <div class="s35-spec">Model <span>SaaS lisans + donanım</span></div>
+      </div>
+      <div class="s35-gain">Tam otonom operasyon. Geleneksel sensör altyapısı yerine soft sensor — ölçek büyüdükçe maliyet farkı katlanıyor.</div>
+    </div>
+
+  </div>
+  <div style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.36);text-align:center;font-style:italic;max-width:1100px;">
+    FarmGo yapraklı sebze, ot bitkileri ve çilek gibi hidroponik uyumlu ürünler için tasarlanmıştır. Buğday, arpa gibi tahıllar bu sistemin kapsamı dışındadır.
+  </div>
+  </div>
+</div>
+
+<!-- ─── S4: ÖLÇEK ─── -->
+<div class="slide" id="s4">
+  <div class="s4-header">
+    <div class="cat-tag">Ürün — Ölçeklenebilirlik</div>
+    <div class="s4-title">Hangi ölçeği istersen, <span>anında uygulayabiliriz.</span></div>
+    <div class="s4-sub">Aynı yazılım katmanı — sistem büyüdükçe model de büyür.</div>
+  </div>
+  <div class="plant-stage-wrap">
+    <div class="plant-tiers">
+      <button class="tier-btn active" onclick="setTier(0)">Balkon / Ev</button>
+      <button class="tier-btn" onclick="setTier(1)">Küçük Sera</button>
+      <button class="tier-btn" onclick="setTier(2)">Ticari</button>
+      <button class="tier-btn" onclick="setTier(3)">Endüstriyel</button>
+    </div>
+    <div class="plant-canvas-wrap">
+      <canvas id="plantCanvas"></canvas>
+      <div class="plant-info">
+        <div class="plant-info-count" id="plantCount">4–20</div>
+        <div class="plant-info-label">bitki</div>
+        <div class="plant-info-specs" id="plantSpecs">Tank: 20–60L<br>Pompa: <span>3–5W</span><br>Donanım: <span>~₺2.000</span><br>Kurulum: <span>1 gün</span></div>
+      </div>
+    </div>
+    <div class="scale-same">Yazılım katmanı değişmez — <b>veri birikir, model tüm ölçeklerde birlikte öğrenir.</b></div>
+  </div>
+</div>
+
+<!-- ─── S55: FİZİKSEL BOYUTLAR ─── -->
+<div class="slide" id="s55">
+  <canvas id="s55-bg" class="ambient-bg"></canvas>
+  <div class="s55-content">
+  <div class="cat-tag">Ürün — Kanıt</div>
+  <div class="s55-title">Alan <span>Verimliliği</span></div>
+  <div class="s55-sub">Yapraklı sebzede dikey tarımın fiziksel üstünlüğü — tahıl ve kök sebzeler bu sistemin kapsamı dışındadır.</div>
+  <div class="s55-wrap">
+    <div class="s55-left">
+      <div class="s55-compare-row">
+        <div class="s55-row-lbl">m² başına bitki</div>
+        <div class="s55-bars">
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-trad" style="width:14%"><span>4–6 bitki</span></div></div><div class="s55-bar-tag">Geleneksel (yatay)</div></div>
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-farm" style="width:85%"><span>15–25 bitki</span></div></div><div class="s55-bar-tag">FarmGo (dikey)</div></div>
+        </div>
+      </div>
+      <div class="s55-compare-row">
+        <div class="s55-row-lbl">Yıllık hasat döngüsü</div>
+        <div class="s55-bars">
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-trad" style="width:22%"><span>2–3 hasat</span></div></div><div class="s55-bar-tag">Geleneksel tarım</div></div>
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-farm" style="width:85%"><span>6–10 hasat</span></div></div><div class="s55-bar-tag">NFT sistemi</div></div>
+        </div>
+      </div>
+      <div class="s55-compare-row">
+        <div class="s55-row-lbl">Su tüketimi (kg başına)</div>
+        <div class="s55-bars">
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-trad" style="width:100%"><span>~250 L/kg</span></div></div><div class="s55-bar-tag">Geleneksel</div></div>
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-farm" style="width:9%"><span>15–30 L/kg</span></div></div><div class="s55-bar-tag">Kapalı devre NFT</div></div>
+        </div>
+      </div>
+      <div class="s55-compare-row">
+        <div class="s55-row-lbl">Büyüme süresi (marul)</div>
+        <div class="s55-bars">
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-trad" style="width:75%"><span>60–70 gün</span></div></div><div class="s55-bar-tag">Toprakta</div></div>
+          <div class="s55-bar-item"><div class="s55-bar-track"><div class="s55-bar-fill s55-farm" style="width:33%"><span>25–35 gün</span></div></div><div class="s55-bar-tag">FarmGo NFT</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="s55-right">
+      <div class="s55-stat-card">
+        <div class="s55-stat-val">4–8×</div>
+        <div class="s55-stat-lbl">Alan Verimi Çarpanı</div>
+        <div class="s55-stat-sub">Yapraklı sebzede, dikey kata göre</div>
+      </div>
+      <div class="s55-stat-card">
+        <div class="s55-stat-val">%85–95</div>
+        <div class="s55-stat-lbl">Su Tasarrufu</div>
+        <div class="s55-stat-sub">Kapalı devre döngü — sisteme göre değişir</div>
+      </div>
+      <div class="s55-stat-card">
+        <div class="s55-stat-val">2× hızlı</div>
+        <div class="s55-stat-lbl">Hasat Süresi</div>
+        <div class="s55-stat-sub">Kontrollü ortam, optimum pH/EC</div>
+      </div>
+      <div class="s55-stat-card">
+        <div class="s55-stat-val">365 gün</div>
+        <div class="s55-stat-lbl">Mevsimden Bağımsız</div>
+        <div class="s55-stat-sub">Hava koşulları etkisiz</div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ─── SBIZ: İŞ MODELİ ─── -->
+<div class="slide" id="sbiz">
+  <canvas id="sbiz-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">İş Modeli</div>
+  <div class="s35-title">Hibrit <span>Gelir Modeli</span></div>
+  <div class="s35-sub" style="font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:24px;max-width:800px;">Tek seferlik donanım satışı + tekrarlayan yazılım geliri + yüksek marjlı premium katman.</div>
+  <div class="grid3">
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-server"></i></div>
+      <div class="s35-user">Tek Seferlik</div>
+      <div class="s35-name">Donanım Satışı</div>
+      <div class="s35-system">Sensör kiti + kontrol ünitesi</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Model</span><span>Sahiplik (CapEx)</span></div>
+        <div class="s35-spec"><span>Bakım</span><span>Opsiyonel sözleşme</span></div>
+      </div>
+      <div class="s35-gain">Düşük giriş engeli, üreticide sahiplik hissi yaratır</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-rotate"></i></div>
+      <div class="s35-user">Aylık / Yıllık</div>
+      <div class="s35-name">SaaS Aboneliği</div>
+      <div class="s35-system">Sanal sensör + dashboard + otomasyon</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Model</span><span>Sera başına aylık ücret</span></div>
+        <div class="s35-spec"><span>Kapsam</span><span>Çoklu sera yönetimi</span></div>
+      </div>
+      <div class="s35-gain">Tekrarlayan gelir (MRR) + müşteri bağımlılığı</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-brain"></i></div>
+      <div class="s35-user">Ek Katman</div>
+      <div class="s35-name">Premium AI Servisleri</div>
+      <div class="s35-system">Özelleştirilmiş modeller ve danışmanlık</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Örnek</span><span>Özel mahsul modeli eğitimi</span></div>
+        <div class="s35-spec"><span>Örnek</span><span>Filo yönetimi, öngörülü bakım</span></div>
+      </div>
+      <div class="s35-gain">Yüksek marjlı upsell, kurumsal müşteri değeri</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SGTM: BÜYÜME STRATEJİSİ ─── -->
+<div class="slide" id="sgtm">
+  <canvas id="sgtm-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Büyüme Stratejisi</div>
+  <div class="s35-title">Go-to-Market <span>Yol Haritası</span></div>
+  <div class="s35-sub" style="font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:24px;max-width:900px;">Hedef: hidroponik tarıma yeni girenler + mevcut sistemini geliştirmek isteyen üreticiler.</div>
+  <div class="s35-grid">
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-flask"></i></div>
+      <div class="s35-user">Aşama 1</div>
+      <div class="s35-name">Araştırma Seraları</div>
+      <div class="s35-system">Düşük bedelle / ücretsiz pilot</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Neden ilk?</span><span>Risk toleransı yüksek</span></div>
+      </div>
+      <div class="s35-gain">Çıktı: Referans + doğrulanmış saha verisi</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-seedling"></i></div>
+      <div class="s35-user">Aşama 2</div>
+      <div class="s35-name">Orta Ölçek Sera</div>
+      <div class="s35-system">Ücretli pilot programı</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Girdi</span><span>Aşama 1'in referansları</span></div>
+      </div>
+      <div class="s35-gain">Çıktı: Vaka analizi + fiyatlandırma doğrulaması</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-industry"></i></div>
+      <div class="s35-user">Aşama 3</div>
+      <div class="s35-name">Ticari Sera</div>
+      <div class="s35-system">Doğrudan satış</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Girdi</span><span>Kanıtlanmış vaka analizleri</span></div>
+      </div>
+      <div class="s35-gain">Çıktı: Lisans satışı + tekrarlayan gelir</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-handshake"></i></div>
+      <div class="s35-user">Aşama 4</div>
+      <div class="s35-name">Kurumsal Ortaklık</div>
+      <div class="s35-system">Distribütör / entegratör ortaklıkları</div>
+      <div class="s35-specs">
+        <div class="s35-spec"><span>Girdi</span><span>Kanıtlanmış ölçeklenebilirlik</span></div>
+      </div>
+      <div class="s35-gain">Çıktı: Yaygınlaşma</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── S5: REKABETÇİ ─── -->
+<div class="slide" id="s5">
+  <canvas id="s5-bg" class="ambient-bg"></canvas>
+  <div class="s5-content">
+  <div class="cat-tag">Rekabet</div>
+  <div class="s5-title">Rakip <span>Analizi</span></div>
+  <div class="s5-tagline">"Mevcut çözümler üretim altyapısına odaklanır — FarmGo, bu altyapının <em>karar verme katmanına</em> odaklanır."</div>
+
+  <div class="s5-sections">
+
+    <!-- Direkt rakipler -->
+    <div class="s5-section">
+      <div class="s5-section-label"><i class="fa-solid fa-crosshairs"></i> Direkt Rakipler — Sensör Bağımlı Kontrol Sistemleri</div>
+      <div class="s5-rivals">
+        <div class="s5-rival">
+          <div class="s5-rival-name">Growee</div>
+          <div class="s5-rival-type">Hidroponik kontrol yazılımı</div>
+          <div class="s5-rival-desc">Küçük/orta ölçek için kullanıcı dostu. Fiziksel pH/EC sensörüne tam bağımlı.</div>
+          <div class="s5-rival-gap"><i class="fa-solid fa-triangle-exclamation"></i> Ölçeklenemiyor, sensör bakımı zorunlu</div>
+        </div>
+        <div class="s5-rival">
+          <div class="s5-rival-name">Autogrow</div>
+          <div class="s5-rival-type">Sera otomasyon sistemi</div>
+          <div class="s5-rival-desc">Endüstriyel seviye otomasyon. Geniş entegrasyon seçenekleri, ticari kanıt var.</div>
+          <div class="s5-rival-gap"><i class="fa-solid fa-triangle-exclamation"></i> Yüksek kurulum maliyeti, küçük ölçeğe erişilemiyor</div>
+        </div>
+        <div class="s5-rival">
+          <div class="s5-rival-name">Priva</div>
+          <div class="s5-rival-type">Precision agriculture platformu</div>
+          <div class="s5-rival-desc">Büyük ölçekli sera yönetiminde güçlü. İklim, sulama, enerji entegrasyonu.</div>
+          <div class="s5-rival-gap"><i class="fa-solid fa-triangle-exclamation"></i> Kurumsal odaklı, kapalı ekosistem, yüksek yatırım</div>
+        </div>
+        <div class="s5-rival">
+          <div class="s5-rival-name">Trolmaster / Agrilyst</div>
+          <div class="s5-rival-type">Kontrol & analitik platformlar</div>
+          <div class="s5-rival-desc">Sensör verisi toplama ve görselleştirme odaklı. API entegrasyonu mevcut.</div>
+          <div class="s5-rival-gap"><i class="fa-solid fa-triangle-exclamation"></i> Sensör bağımlı, tahmin yok, kapalı mimari</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Farklı katman -->
+    <div class="s5-section">
+      <div class="s5-section-label s5-section-label-blue"><i class="fa-solid fa-layer-group"></i> Farklı Katman — Rakip Değil, Potansiyel Müşteri</div>
+      <div class="s5-rivals">
+        <div class="s5-rival s5-rival-blue">
+          <div class="s5-rival-name" style="color:#7AAACE">AeroFarms, AppHarvest, Bowery</div>
+          <div class="s5-rival-type">Dikey tarım üreticileri</div>
+          <div class="s5-rival-desc">Üretim yapıyorlar — kontrol yazılımı satmıyorlar. Yüksek OpEx ile battılar.</div>
+          <div class="s5-rival-gap s5-rival-gap-blue"><i class="fa-solid fa-arrow-right"></i> FarmGo'nun yazılım katmanını kullanabilirlerdi</div>
+        </div>
+        <div class="s5-rival s5-rival-blue">
+          <div class="s5-rival-name" style="color:#7AAACE">Hydrofarm, General Hydroponics</div>
+          <div class="s5-rival-type">Hidroponik ekipman üreticileri</div>
+          <div class="s5-rival-desc">Fiziksel sistem satıyorlar — yazılım katmanı yok. Donanım odaklı iş modeli.</div>
+          <div class="s5-rival-gap s5-rival-gap-blue"><i class="fa-solid fa-arrow-right"></i> FarmGo bu donanımların üzerine oturabilir</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="s5-farmgo-edge">
+    <i class="fa-solid fa-seedling"></i>
+    <span>FarmGo'nun farkı: <strong>Sensör bağımsız</strong> — soft sensor ile pahalı prob maliyeti yok. <strong>Katman bağımsız</strong> — her donanımın üzerine oturur. <strong>Ölçek bağımsız</strong> — balkonda da fabrikada da aynı yazılım.</span>
+  </div>
+  </div>
+</div>
+
+<!-- ─── SPOS: SEKTÖRDEKİ YERİ ─── -->
+<div class="slide" id="spos">
+  <canvas id="spos-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Rekabet — Konumlandırma</div>
+  <div class="spos-title">Sektördeki <span>Konumu</span></div>
+  <div class="spos-sub">Maliyet erişilebilirliği ile teknoloji kapasitesi ekseninde rakip konumlandırması.</div>
+  <div class="spos-wrap">
+    <div class="spos-matrix">
+      <div class="spos-matrix-title">Konum Matrisi</div>
+      <div class="spos-grid" id="sposGrid">
+        <div class="spos-axis-x"></div>
+        <div class="spos-axis-y"></div>
+        <div class="spos-label-top">Yüksek Teknoloji</div>
+        <div class="spos-label-bottom">Düşük Teknoloji</div>
+        <div class="spos-label-left">Ucuz</div>
+        <div class="spos-label-right">Pahalı</div>
+        <!-- Dots positioned via CSS: left=maliyet(sağ=pahalı), bottom=teknoloji(yüksek=üst) -->
+        <!-- Growee: orta maliyet, orta-düşük teknoloji -->
+        <div class="spos-dot" style="left:45%;bottom:38%;width:36px;height:36px;background:rgba(91,141,184,0.25);border:2px solid rgba(91,141,184,0.6);">
+          <div class="spos-dot-label" style="color:rgba(91,141,184,0.9);bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);">Growee</div>
+        </div>
+        <!-- Autogrow: yüksek maliyet, yüksek teknoloji -->
+        <div class="spos-dot" style="left:75%;bottom:72%;width:40px;height:40px;background:rgba(212,136,42,0.25);border:2px solid rgba(212,136,42,0.6);">
+          <div class="spos-dot-label" style="color:rgba(212,136,42,0.9);bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);">Autogrow</div>
+        </div>
+        <!-- Priva: çok yüksek maliyet, çok yüksek teknoloji -->
+        <div class="spos-dot" style="left:88%;bottom:85%;width:44px;height:44px;background:rgba(192,57,43,0.2);border:2px solid rgba(192,57,43,0.5);">
+          <div class="spos-dot-label" style="color:rgba(192,57,43,0.8);bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);">Priva</div>
+        </div>
+        <!-- DIY/Hobi: düşük maliyet, düşük teknoloji -->
+        <div class="spos-dot" style="left:20%;bottom:18%;width:32px;height:32px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.4);">
+          <div class="spos-dot-label" style="color:rgba(255,255,255,0.6);bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);">DIY/Hobi</div>
+        </div>
+        <!-- FarmGo: düşük maliyet, yüksek teknoloji — boş alan -->
+        <div class="spos-dot" style="left:22%;bottom:78%;width:48px;height:48px;background:rgba(165,233,194,0.2);border:2.5px solid #A5E9C2;box-shadow:0 0 20px rgba(165,233,194,0.25);">
+          <div class="spos-dot-label" style="color:#A5E9C2;font-weight:700;font-size:11px;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);">FarmGo</div>
+        </div>
+        <!-- Boş alan vurgu -->
+        <div style="position:absolute;left:5%;bottom:55%;width:42%;height:42%;border:1px dashed rgba(165,233,194,0.15);border-radius:8px;pointer-events:none;">
+          <span style="position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:8px;color:rgba(165,233,194,0.3);white-space:nowrap;letter-spacing:1px;text-transform:uppercase;">Boş Alan</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="spos-legend-title">Karşılaştırma</div>
+      <div class="spos-legend">
+        <div class="spos-legend-item farmgo">
+          <div class="spos-legend-name"><div class="spos-legend-dot" style="background:#A5E9C2;box-shadow:0 0 6px rgba(165,233,194,0.4)"></div>FarmGo</div>
+          <div class="spos-legend-desc">Yazılım odaklı yaklaşımla yüksek teknoloji kapasitesini düşük maliyette sunuyor. Soft sensor, otonom dozajlama, SaaS panel — prob olmadan.</div>
+          <div class="spos-legend-tags">
+            <span class="spos-legend-tag plus">Düşük kurulum</span>
+            <span class="spos-legend-tag plus">Sensör bağımsız</span>
+            <span class="spos-legend-tag plus">Her ölçek</span>
+            <span class="spos-legend-tag minus">Prototip aşaması</span>
+          </div>
+        </div>
+        <div class="spos-legend-item">
+          <div class="spos-legend-name"><div class="spos-legend-dot" style="background:rgba(91,141,184,0.8)"></div>Growee</div>
+          <div class="spos-legend-desc">Küçük/orta ölçek için kullanıcı dostu. Fiziksel sensöre bağımlı, büyük ölçekte yetersiz.</div>
+          <div class="spos-legend-tags">
+            <span class="spos-legend-tag plus">Kolay kurulum</span>
+            <span class="spos-legend-tag minus">Sensör bağımlı</span>
+            <span class="spos-legend-tag minus">Ölçeklenemiyor</span>
+          </div>
+        </div>
+        <div class="spos-legend-item">
+          <div class="spos-legend-name"><div class="spos-legend-dot" style="background:rgba(212,136,42,0.8)"></div>Autogrow / Priva</div>
+          <div class="spos-legend-desc">Endüstriyel seviyede güçlü — ama yüksek kurulum maliyeti ve kapalı sistem yapısıyla küçük üreticiye erişilemiyor.</div>
+          <div class="spos-legend-tags">
+            <span class="spos-legend-tag plus">Endüstriyel güç</span>
+            <span class="spos-legend-tag minus">Yüksek maliyet</span>
+            <span class="spos-legend-tag minus">Kapalı ekosistem</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── STEAM: EKİP ─── -->
+<div class="slide" id="steam">
+  <canvas id="steam-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Ekip</div>
+  <div class="s25-title">Kurucu <span>Ekip & Aranan Roller</span></div>
+  <div class="s25-sub">Mevcut yetkinlikler + büyümek için ihtiyaç duyulan takviyeler.</div>
+  <div class="s25-wrap">
+    <div class="s25-col">
+      <div class="s25-col-header mod-a">Kurucu Yetkinlikleri</div>
+      <div class="s25-item mod-a"><div><div class="s25-item-name">IoT</div><div class="s25-item-sub">Sensör/gömülü sistem mimarisi</div></div></div>
+      <div class="s25-item mod-a"><div><div class="s25-item-name">Yapay Zekâ / ML</div><div class="s25-item-sub">Sanal sensör, zaman serisi modelleme</div></div></div>
+      <div class="s25-item mod-a"><div><div class="s25-item-name">Yazılım Geliştirme</div><div class="s25-item-sub">Backend, veri işleme, dashboard</div></div></div>
+      <div class="s25-item mod-a"><div><div class="s25-item-name">Ürün Tasarımı</div><div class="s25-item-sub">UX, arayüz, sunum</div></div></div>
+    </div>
+    <div class="s25-col">
+      <div class="s25-col-header mod-b">Aranan Roller</div>
+      <div class="s25-item mod-b"><div><div class="s25-item-name">Sera Agronomu</div><div class="s25-item-sub">Model doğrulama ve saha testleri için</div></div></div>
+      <div class="s25-item mod-b"><div><div class="s25-item-name">Elektronik Mühendisi</div><div class="s25-item-sub">Sensör/donanım entegrasyonu için</div></div></div>
+      <div class="s25-item mod-b"><div><div class="s25-item-name">İş Geliştirme</div><div class="s25-item-sub">Satış ve ortaklıklar için</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── SRISKS: RİSK & GÜVENİLİRLİK ─── -->
+<div class="slide" id="srisks">
+  <canvas id="srisks-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Risk & Güvenilirlik</div>
+  <div class="s35-title">Riskleri <span>Biliyoruz, Kapatıyoruz</span></div>
+  <div class="s35-sub" style="font-size:13px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:24px;max-width:900px;">Şu an simülasyon aşamasındayız — gerçek dünyaya geçişteki üç ana riski ve nasıl ele aldığımızı açıkça paylaşıyoruz.</div>
+  <div class="grid3">
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="s35-user">Risk</div>
+      <div class="s35-name">Gerçek Sensör Doğrulaması</div>
+      <div class="s35-system">Şu an yalnızca simülasyon verisiyle çalışıyoruz</div>
+      <div class="s35-gain"><b>Mitigasyon:</b> Pilot sera testleriyle gerçek donanım entegrasyonu ve çapraz doğrulama</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-chart-line-down"></i></div>
+      <div class="s35-user">Risk</div>
+      <div class="s35-name">ML Doğruluğu</div>
+      <div class="s35-system">Gerçek/değişken saha koşullarında düşebilir</div>
+      <div class="s35-gain"><b>Mitigasyon:</b> Gerçek saha verisiyle sürekli yeniden eğitim (continuous retraining)</div>
+    </div>
+    <div class="s35-card">
+      <div class="s35-icon"><i class="fa-solid fa-microchip"></i></div>
+      <div class="s35-user">Risk</div>
+      <div class="s35-name">Donanım Tedariki</div>
+      <div class="s35-system">Maliyet dalgalanmaları, küresel çip krizleri</div>
+      <div class="s35-gain"><b>Mitigasyon:</b> Donanımdan bağımsız yazılım mimarisi, çoklu marka uyumluluğu</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── S6: VİZYON ─── -->
+<div class="slide" id="s6">
+  <div class="s6-orb" id="orb6a"></div>
+  <div class="s6-orb2" id="orb6b"></div>
+  <div class="s6-orb3" id="orb6c"></div>
+  <div class="s6-content">
+    <div class="s6-eyebrow">Vizyon</div>
+    <div class="s6-quote">
+      Geleneksel üreticileri<br>
+      <em>sistem operatörüne</em><br>
+      dönüştürmek.
+    </div>
+    <div class="s6-desc">
+      Dikey eksenli hidroponik tarım teknolojilerinde; sınır bilişim ve veri analitiğini entegre ederek, 
+      çevresel faktörlerden ve kaynak kısıtlarından bağımsız, yüksek kararlılıkta çalışan 
+      otonom üretim standartları geliştirmek.
+    </div>
+    <div class="s6-pillars">
+      <div class="s6-pillar">Yazılım odaklı</div>
+      <div class="s6-pillar">Ölçeklenebilir</div>
+      <div class="s6-pillar">Düşük OpEx</div>
+      <div class="s6-pillar">Veriyle öğrenen</div>
+      <div class="s6-pillar">Entegre edilebilir</div>
+    </div>
+    <div class="s6-logo">FarmGo</div>
+    <div class="s6-eogs">EOGS TK — @eogstk</div>
+  </div>
+</div>
+
+
+<!-- ─── SGANTT: ZAMAN ÇİZELGESİ ─── -->
+<div class="slide" id="sgantt">
+  <canvas id="sgantt-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Yol Haritası</div>
+  <div class="sg-title">Ne Yaptık, <span>Ne Yapacağız?</span></div>
+  <div class="sg-sub">2026 Q1'den 2027 Q4'e proje zaman çizelgesi.</div>
+  <div class="sg-wrap">
+
+    <!-- Header: quarter labels -->
+    <div id="sgHeader" style="display:grid;grid-template-columns:160px 1fr;gap:8px;margin-bottom:6px;">
+      <div></div>
+      <div id="sgQuarters" style="display:grid;gap:0;"></div>
+    </div>
+
+    <div class="sg-rows" id="sgRows"></div>
+
+    <div class="sg-legend">
+      <div class="sg-legend-item"><div class="sg-legend-bar sg-bar done" style="position:relative;padding:0;"></div>Tamamlandı</div>
+      <div class="sg-legend-item"><div class="sg-legend-bar sg-bar doing" style="position:relative;padding:0;"></div>Devam Ediyor</div>
+      <div class="sg-legend-item"><div class="sg-legend-bar sg-bar plan" style="position:relative;padding:0;"></div>Planlanıyor</div>
+      <div class="sg-legend-item"><div class="sg-legend-bar sg-bar milestone" style="position:relative;padding:0;"></div>Kilometre Taşı</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── S6.5: ŞU AN / HEDEF / VİZYON ─── -->
+<div class="slide" id="s65" style="will-change:auto;transform:none;contain:layout style;">
+  <canvas id="s65-bg" class="ambient-bg"></canvas>
+  <div class="cat-tag">Traksiyon — Mevcut Durum</div>
+  <div class="s65-title">Nerede <span>Duruyoruz?</span></div>
+  <div class="s65-sub">Prototip'ten endüstriyel standarda — net ayrım.</div>
+  <div class="s65-timeline">
+
+    <div class="s65-col now">
+      <div class="s65-phase">Şu An — Prototip</div>
+      <div class="s65-when">2026<br>Kanıt Aşaması</div>
+      <div class="s65-items">
+        <div class="s65-item"><div class="s65-item-dot"></div>ESP32 tabanlı gömülü sistem</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Soft sensor algoritması çalışıyor</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>IndexedDB veri birikimi</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>ML model eğitimi (tarayıcı tabanlı)</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>NFT sistem fiziksel prototip</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Dashboard & sunum demo</div>
+      </div>
+      <div class="s65-missing">
+        <div class="s65-missing-label">Henüz Yok</div>
+        <div class="s65-missing-item">Gerçek pH/EC sensörü entegrasyonu</div>
+        <div class="s65-missing-item">Peristaltik pompa otomasyonu</div>
+        <div class="s65-missing-item">Bulut backend</div>
+      </div>
+    </div>
+
+    <div class="s65-arrow">→</div>
+
+    <div class="s65-col near">
+      <div class="s65-phase">Yakın Hedef — Ürün</div>
+      <div class="s65-when">2026–2027<br>Ürünleşme</div>
+      <div class="s65-items">
+        <div class="s65-item"><div class="s65-item-dot"></div>Gerçek sensörle model doğrulama</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>FastAPI + PostgreSQL backend</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Peristaltik pompa otomasyonu</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Mobil uygulama (alarm, izleme)</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>İlk pilot kurulum (küçük sera)</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>SaaS abonelik modeli</div>
+      </div>
+      <div class="s65-missing">
+        <div class="s65-missing-label">Henüz Yok</div>
+        <div class="s65-missing-item">Çok kullanıcı yönetimi</div>
+        <div class="s65-missing-item">Endüstriyel sertifikasyon</div>
+      </div>
+    </div>
+
+    <div class="s65-arrow">→</div>
+
+    <div class="s65-col far" style="font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+      <div class="s65-phase" style="font-family:'DM Sans',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(165,233,194,0.55);">Büyük Hedef — Ekosistem</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:20px;color:rgba(255,255,255,0.9);margin-bottom:16px;line-height:1.3;font-weight:400;">2027+<br>Sektör Standardı</div>
+      <div class="s65-items">
+        <div class="s65-item"><div class="s65-item-dot"></div>Çok tesisli merkezi yönetim</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Bitki türü başına özel ML modeli</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Enerji optimizasyonu (yenilenebilir)</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Ar-Ge ortaklıkları (üniversite, kamu)</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Uluslararası pilot kurulumlar</div>
+        <div class="s65-item"><div class="s65-item-dot"></div>Açık veri havuzu — sektör standardı</div>
+      </div>
+      <div class="s65-missing">
+        <div class="s65-missing-label" style="font-family:'DM Sans',sans-serif;">Vizyon Hedefi</div>
+        <div class="s65-missing-item" style="font-family:'DM Sans',sans-serif;">Geleneksel üreticileri sistem operatörüne dönüştürmek</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+
+<div class="nav">
+  <button class="nav-arrow" onclick="go(-1)">←</button>
+  <div id="nav-dots"></div>
+  <span class="nav-label" id="nav-label">Kapak</span>
+  <button class="nav-arrow" onclick="go(1)">→</button>
+</div>
+<div class="key-hint">← → klavye</div>
+
+<script>
+
+const slides=document.querySelectorAll('.slide');
+const labels=['Kapak','Problem','Sanal Sensör','Maliyet','Neden Şimdi','Pazar Büyüklüğü','Ekosistem','Segmentler','Ölçek','Boyutlar','İş Modeli','Büyüme Stratejisi','Rakip Analizi','Sektördeki Yeri','Ekip','Riskler','Vizyon','Zaman Çizelgesi','Yol Haritası'];
+let cur=0,busy=false;
+const dotsEl=document.getElementById('nav-dots');
+slides.forEach((_,i)=>{
+  const d=document.createElement('div');
+  d.className='nav-dot'+(i===0?' active':'');
+  d.onclick=()=>goTo(i); dotsEl.appendChild(d);
+});
+function goTo(n){
+  if(busy)return;
+  n=((n%slides.length)+slides.length)%slides.length;
+  if(n===cur)return;
+  busy=true;
+  // Güvenlik: busy her koşulda serbest bırakılır
+  setTimeout(()=>{busy=false;},1200);
+  try {
+    slides[cur].classList.remove('active'); slides[cur].classList.add('exit');
+    setTimeout(()=>{ try{slides[cur].classList.remove('exit');}catch(e){} },1100);
+    cur=n; slides[cur].classList.add('active');
+    document.querySelectorAll('.nav-dot').forEach((d,i)=>d.classList.toggle('active',i===cur));
+    document.getElementById('nav-label').textContent=labels[cur]||'';
+    document.getElementById('progress').style.width=((cur/(slides.length-1))*100)+'%';
+    if(cur===1){setTimeout(initS1,200);setTimeout(initS1BG,50);}
+    if(cur===2){setTimeout(initS2,600);setTimeout(initS2BG,50);}
+    if(cur===3)setTimeout(initS25BG,50);
+    if(cur===4)setTimeout(initSwhyBG,50);
+    if(cur===5)setTimeout(initSmarketBG,50);
+    if(cur===6)setTimeout(initS3,200);
+    if(cur===7)setTimeout(initS35BG,50);
+    if(cur===8)setTimeout(initS4,200);
+    if(cur===9)setTimeout(initS55BG,50);
+    if(cur===10)setTimeout(initSbizBG,50);
+    if(cur===11)setTimeout(initSgtmBG,50);
+    if(cur===12)setTimeout(initS5BG,50);
+    if(cur===13)setTimeout(initSposBG,50);
+    if(cur===14)setTimeout(initSteamBG,50);
+    if(cur===15)setTimeout(initSrisksBG,50);
+    if(cur===17){setTimeout(function(){try{buildGantt();}catch(e){console.warn('Gantt:',e);}},300);setTimeout(initSganttBG,50);}
+    if(cur===18)setTimeout(initS65BG,50);
+  } catch(e) { console.warn('goTo error:',e); busy=false; }
+}
+function go(d){goTo(cur+d);}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='d'||e.key==='D')go(1);
+  if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A')go(-1);
+});
+
+
+document.getElementById('progress').style.width='0%';
+
+// S1 ─────────────────────────────────────────────────────────────────────────
+function initS1(){
+  try{
+  const wrap=document.getElementById('s1-timeline');
+  if(!wrap||wrap.dataset.init)return; wrap.dataset.init=1;
+  const cv=document.createElement('canvas'); wrap.appendChild(cv);
+  cv.style.cssText='width:100%;height:100%;display:block;';
+  const W=cv.width=wrap.offsetWidth,H=cv.height=wrap.offsetHeight;
+  const cx=cv.getContext('2d');
+  const firms=[
+    {name:'AeroFarms', year:2023,raised:300,fate:'Chapter 11',color:'#C05050'},
+    {name:'AppHarvest',year:2023,raised:700,fate:'Tasfiye',   color:'#D04040'},
+    {name:'Bowery',    year:2024,raised:700,fate:'Kapandı',   color:'#B83030'},
+    {name:'Plenty',    year:2025,raised:940,fate:'Chapter 11',color:'#A02020'},
+  ];
+  let animPct=0,start=null;
+  function draw(ts){
+    if(!start)start=ts;
+    animPct=Math.min(1,(ts-start)/2400);
+    cx.clearRect(0,0,W,H);
+    const pL=80,pR=40,pT=24,pB=44,aw=W-pL-pR,ah=H-pT-pB;
+    cx.strokeStyle='rgba(255,255,255,0.07)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(pL,H-pB);cx.lineTo(W-pR,H-pB);cx.stroke();
+    [2022,2023,2024,2025,2026].forEach(y=>{
+      const x=pL+((y-2022)/4)*aw;
+      cx.fillStyle='rgba(255,255,255,0.4)';cx.font='11px DM Sans';cx.textAlign='center';
+      cx.fillText(y,x,H-pB+16);
+      cx.strokeStyle='rgba(255,255,255,0.04)';cx.lineWidth=1;
+      cx.beginPath();cx.moveTo(x,pT);cx.lineTo(x,H-pB);cx.stroke();
+    });
+    const bW=52;
+    firms.forEach((f,i)=>{
+      const bx=pL+((f.year-2022)/4)*aw-bW/2+(i%2===0?-22:22); if(bx+bW>W-pR-4) return;
+      const maxBH=ah*0.82,tH=(f.raised/1000)*maxBH;
+      const prog=Math.max(0,Math.min(1,animPct*3-i*0.4));
+      const curH=tH*prog; if(curH<2)return;
+      const grad=cx.createLinearGradient(0,H-pB-curH,0,H-pB);
+      grad.addColorStop(0,f.color+'dd');grad.addColorStop(1,f.color+'22');
+      cx.fillStyle=grad;
+      cx.beginPath();cx.roundRect(bx,H-pB-curH,bW,curH,4);cx.fill();
+      if(prog>0.4){
+        const a=Math.min(1,(prog-0.4)/0.3);
+        cx.fillStyle='rgba(255,255,255,'+(a*0.75)+')';cx.font='bold 12px DM Sans';cx.textAlign='center';
+        cx.fillText('$'+f.raised+'M',bx+bW/2,H-pB-curH-20);
+        cx.fillStyle='rgba(224,150,140,'+a+')';cx.font='11px DM Sans';
+        cx.fillText(f.name,bx+bW/2,H-pB-curH-7);
+      }
+      if(animPct>0.55+i*0.08){
+        const a2=Math.min(1,(animPct-0.55-i*0.08)/0.15);
+        cx.strokeStyle='rgba(255,70,70,'+(a2*0.75)+')';cx.lineWidth=2;cx.setLineDash([5,3]);
+        cx.beginPath();cx.moveTo(bx-4,H-pB-curH/2);cx.lineTo(bx+bW+4,H-pB-curH/2);cx.stroke();
+        cx.setLineDash([]);
+        cx.fillStyle='rgba(255,80,80,'+(a2*0.85)+')';cx.font='bold 9px DM Sans';cx.textAlign='center';
+        cx.fillText(f.fate,bx+bW/2,H-pB-curH/2-5);
+      }
+    });
+    if(animPct>0.72){
+      const a=(animPct-0.72)/0.28;
+      cx.fillStyle='rgba(165,233,194,'+(a*0.55)+')';cx.font='11px DM Sans';cx.textAlign='left';
+      cx.fillText('VC: $2.9B (2021) → $329M (2024)',pL,pT+13);
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+  } catch(e){ console.warn('S1:',e); }
+}
+
+// S2 ─────────────────────────────────────────────────────────────────────────
+let s2Init=false;
+function initS2(){
+  if(s2Init)return; s2Init=true;
+  // Accuracy chart
+  try {
+    const accEl=document.getElementById('accuracyChart');
+    if(accEl && typeof Chart !== 'undefined') new Chart(accEl.getContext('2d'),{
+      type:'line',
+      data:{labels:['500','1K','2K','5K','10K','20K','40K','80K','100K+'],
+        datasets:[
+          {data:[14,21,30,44,57,68,78,85,91],borderColor:'#A5E9C2',borderWidth:2,pointRadius:2,
+           pointBackgroundColor:'#A5E9C2',fill:true,backgroundColor:'rgba(165,233,194,0.07)',tension:0.45},
+          {data:Array(9).fill(90),borderColor:'rgba(91,141,184,0.3)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false}
+        ]},
+      options:{responsive:true,maintainAspectRatio:false,animation:{duration:1500},
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{color:'rgba(255,255,255,0.5)',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}},
+          y:{min:0,max:100,ticks:{color:'rgba(255,255,255,0.5)',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.04)'},border:{display:false}}
+        }}
+    });
+  } catch(e) { console.warn('Chart error:', e); }
+  
+  function fade(id,val,dec){
+    const el=document.getElementById(id);if(!el)return;
+    el.classList.add('s2-fading');
+    setTimeout(()=>{el.textContent=val.toFixed(dec);el.classList.remove('s2-fading');},200);
+  }
+  setInterval(()=>{
+    fade('ph-real',6.12+(Math.random()-.5)*.08,2);
+    fade('ph-pred',6.09+(Math.random()-.5)*.10,2);
+    fade('ec-real',1.34+(Math.random()-.5)*.05,2);
+    fade('ec-pred',1.31+(Math.random()-.5)*.07,2);
+    fade('rmse-val',0.032+(Math.random()-.5)*.016,3);
+    fade('rmse-ec-val',0.029+(Math.random()-.5)*.014,3);
+  },1400);
+}
+
+// S3 ─────────────────────────────────────────────────────────────────────────
+let s3Init=false;
+const orbitData=[
+  {icon:'fa-brain',name:'Sanal Sensör',tag:'Çekirdek',desc:'Çevresel verilerden pH/EC tahmini. Veri arttıkça hassasiyet artar. Pahalı problar olmadan endüstriyel doğruluk.'},
+  {icon:'fa-droplet',name:'Otonom Dozajlama',tag:'Otomasyon',desc:'Soft sensor kararlarına göre besin ve pH Down otomatik dozlanır. İnsan hatası minimize edilir.'},
+  {icon:'fa-shield-halved',name:'Akış Güvencesi',tag:'Fail-Safe',desc:'Pompa ve akış çapraz kontrolü. Tıkanma veya debi düşüşü anlık tespit. SOS devreye girer.'},
+  {icon:'fa-plug-circle-bolt',name:'Kesinti Yönetimi',tag:'Süreklilik',desc:'Elektrik kesilince sistem durumu kaydedilir. Güç dönünce son stabil noktadan devam eder.'},
+  {icon:'fa-water',name:'Klor Protokolü',tag:'Su Yön.',desc:'Şebeke suyundaki klorun sisteme güvenli entegrasyonu. Klor ucurma otomatik takip ve transfer.'},
+  {icon:'fa-display',name:'SaaS Panel',tag:'Platform',desc:'Dusuk bant genisliginde calisan, olay odakli veri. Coklu dil, minimalist, anlik alarm.'},
+];
+function initS3(){
+  if(s3Init)return; s3Init=true;
+  const wrap=document.getElementById('orbitWrap');
+  const cv=document.getElementById('orbitCanvas');
+  const nodesEl=document.getElementById('orbitNodes');
+  const tooltip=document.getElementById('orbitTooltip');
+  if(!wrap||!cv)return;
+  cv.width=wrap.offsetWidth; cv.height=wrap.offsetHeight;
+  const W=cv.width,H=cv.height,cx=cv.getContext('2d');
+  const cx0=W/2,cy0=H/2,R=Math.min(W,H)*0.4;
+  orbitData.forEach((d,i)=>{
+    const angle=(i/orbitData.length)*Math.PI*2-Math.PI/2;
+    const x=cx0+Math.cos(angle)*R,y=cy0+Math.sin(angle)*R;
+    const node=document.createElement('div');
+    node.className='orbit-node'; node.style.left=x+'px'; node.style.top=y+'px';
+    node.innerHTML='<i class="fa-solid '+d.icon+' orbit-node-icon"></i><div class="orbit-node-name">'+d.name+'</div>';
+    node.addEventListener('mousemove',function(e){
+      tooltip.style.opacity='1';
+      tooltip.style.left=(e.clientX+16)+'px'; tooltip.style.top=(e.clientY-10)+'px';
+      tooltip.innerHTML='<b>'+d.name+' <span style="font-size:9px;opacity:.6">'+d.tag+'</span></b>'+d.desc;
+    });
+    node.addEventListener('mouseleave',()=>tooltip.style.opacity='0');
+    nodesEl.appendChild(node);
+  });
+  let t=0;
+  (function drawOrbit(){
+    t+=0.02; cx.clearRect(0,0,W,H);
+    orbitData.forEach((_,i)=>{
+      const angle=(i/orbitData.length)*Math.PI*2-Math.PI/2;
+      const nx=cx0+Math.cos(angle)*R,ny=cy0+Math.sin(angle)*R;
+      const pulse=0.12+0.1*Math.sin(t+i*1.05);
+      cx.strokeStyle='rgba(165,233,194,'+pulse+')';cx.lineWidth=1;cx.setLineDash([5,5]);
+      cx.beginPath();cx.moveTo(cx0,cy0);cx.lineTo(nx,ny);cx.stroke();cx.setLineDash([]);
+      const tp=((t*0.35+i*0.166)%1);
+      const dx=cx0+(nx-cx0)*tp,dy=cy0+(ny-cy0)*tp;
+      cx.beginPath();cx.arc(dx,dy,2.5,0,Math.PI*2);
+      cx.fillStyle='rgba(163,200,120,'+(0.5+0.4*Math.sin(t*2+i))+')';cx.fill();
+    });
+    cx.beginPath();cx.arc(cx0,cy0,R,0,Math.PI*2);
+    cx.strokeStyle='rgba(165,233,194,0.07)';cx.lineWidth=1;cx.stroke();
+    requestAnimationFrame(drawOrbit);
+  })();
+}
+
+// S4 ─────────────────────────────────────────────────────────────────────────
+let s4Init=false,targetPlants=12,shownPlants=0;
+const tiers=[
+  {label:'4-20',  count:12, specs:'Tank: 20-60L<br>Pompa: <span>3-5W</span><br>Donanim: <span>~2.000 TL</span><br>Kurulum: <span>1 gun</span>'},
+  {label:'20-200',count:65, specs:'Tank: 100-500L<br>NFT: <span>2-5 kanal</span><br>Donanim: <span>~15.000 TL</span><br>Kurulum: <span>1 hafta</span>'},
+  {label:'200-1K',count:200,specs:'Tank: 1.000-5.000L<br>NFT: <span>10-30 kanal</span><br>Donanim: <span>~80.000 TL</span><br>Kurulum: <span>2-4 hafta</span>'},
+  {label:'1K+',   count:500,specs:'Tank: 10.000L+<br>NFT: <span>30+ kanal</span><br>Model: <span>SaaS lisans</span><br>Kurulum: <span>Moduler</span>'},
+];
+function setTier(idx){
+  document.querySelectorAll('.tier-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  document.getElementById('plantCount').textContent=tiers[idx].label;
+  document.getElementById('plantSpecs').innerHTML=tiers[idx].specs;
+  targetPlants=tiers[idx].count;
+}
+function initS4(){
+  if(s4Init)return; s4Init=true;
+  const cv=document.getElementById('plantCanvas');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  setTier(0); shownPlants=0;
+  (function drawPlants(){
+    const W=cv.width,H=cv.height;
+    if(shownPlants<targetPlants)shownPlants=Math.min(targetPlants,shownPlants+Math.max(1,Math.ceil((targetPlants-shownPlants)/10)));
+    else if(shownPlants>targetPlants)shownPlants=Math.max(targetPlants,shownPlants-Math.ceil((shownPlants-targetPlants)/8));
+    cx.clearRect(0,0,W,H);
+    const n=Math.round(shownPlants),dW=W-170;
+    const cols=Math.ceil(Math.sqrt(n*2.2)),rows=Math.ceil(n/cols);
+    const cw=dW/(cols+0.5),rh=H/(rows+0.5);
+    const lSz=Math.min(cw*0.48,rh*0.55,26);
+    for(let i=0;i<n;i++){
+      const col=i%cols,row=Math.floor(i/cols);
+      const x=cw*(col+0.75)+(row%2)*cw*0.5,y=rh*(row+0.6);
+      cx.strokeStyle='rgba(80,110,50,0.6)';cx.lineWidth=Math.max(1,lSz*0.06);
+      cx.beginPath();cx.moveTo(x,y+lSz*0.5);cx.lineTo(x,y-lSz*0.2);cx.stroke();
+      [[-.5,.25,.55],[.5,.25,.55],[-.3,-.1,.5],[.3,-.1,.5],[0,-.38,.45]].forEach(function(a){
+        cx.beginPath();
+        cx.ellipse(x+a[0]*lSz,y+a[1]*lSz,lSz*a[2],lSz*0.28,a[0]*0.5,0,Math.PI*2);
+        cx.fillStyle='rgba(72,118,52,0.52)';cx.fill();
+        cx.strokeStyle='rgba(110,170,70,0.16)';cx.lineWidth=0.5;cx.stroke();
+      });
+      cx.fillStyle='rgba(165,233,194,0.1)';
+      cx.beginPath();cx.roundRect(x-lSz*0.22,y+lSz*0.45,lSz*0.44,lSz*0.22,2);cx.fill();
+    }
+    requestAnimationFrame(drawPlants);
+  })();
+}
+
+// AMBIENT BACKGROUNDS ──────────────────────────────────────────────────────
+// Her biri slide'ın konusuna göre farklı bir görsel dil kullanır (S0'daki
+// damar/hex animasyonunun aksine kopya değil, temaya özel üretilmiştir).
+
+// S1 — "Sektör neden batıyor?" — slide'ın kendi verisini yansıtan çöküş eğrisi:
+// VC yatırımının 2021→2024 çöküşünü andıran aşağı eğilimli trend çizgisi,
+// üzerinde iflas eden şirketleri temsil eden nabız gibi büyüyüp küçülen X işaretleri.
+let s1BGInit=false;
+function initS1BG(){
+  if(s1BGInit)return; s1BGInit=true;
+  const cv=document.getElementById('s1-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const N=40, pts=[];
+  let y=H*0.20;
+  for(let i=0;i<=N;i++){
+    const x=W*i/N;
+    y+=(Math.random()-0.3)*H*0.04;
+    pts.push({x,y});
+  }
+  for(let i=0;i<=N;i++){
+    const target=H*0.14+(H*0.62)*(i/N);
+    pts[i].y=pts[i].y*0.35+target*0.65;
+  }
+  const markers=[6,14,22,29,36].map(function(idx){return{idx:idx,phase:Math.random()*Math.PI*2};});
+  let t=0;
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(224,112,96,0.11)'; cx.lineWidth=1.6;
+    cx.beginPath();
+    pts.forEach(function(p,i){ if(i===0)cx.moveTo(p.x,p.y); else cx.lineTo(p.x,p.y); });
+    cx.stroke();
+    const grad=cx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'rgba(224,112,96,0.05)'); grad.addColorStop(1,'rgba(224,112,96,0)');
+    cx.lineTo(W,H); cx.lineTo(0,H); cx.closePath();
+    cx.fillStyle=grad; cx.fill();
+    t+=0.02;
+    markers.forEach(function(m){
+      const p=pts[m.idx];
+      const pulse=(Math.sin(t+m.phase)+1)/2;
+      const r=3+pulse*2.5, a=0.14+pulse*0.18;
+      cx.strokeStyle='rgba(224,112,96,'+a+')'; cx.lineWidth=1.4;
+      cx.beginPath();
+      cx.moveTo(p.x-r,p.y-r); cx.lineTo(p.x+r,p.y+r);
+      cx.moveTo(p.x+r,p.y-r); cx.lineTo(p.x-r,p.y+r);
+      cx.stroke();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S25 — "Gerçek Maliyet Tablosu" — fatura/ledger çizgileri + yavaş tarama ışığı
+let s25BGInit=false;
+function initS25BG(){
+  if(s25BGInit)return; s25BGInit=true;
+  const cv=document.getElementById('s25-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  let scan=0;
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(255,255,255,0.025)'; cx.lineWidth=1;
+    for(let y=20;y<H;y+=27){ cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke(); }
+    scan=(scan+0.55)%(W+260);
+    const g=cx.createLinearGradient(scan-260,0,scan,0);
+    g.addColorStop(0,'rgba(165,233,194,0)');
+    g.addColorStop(0.5,'rgba(165,233,194,0.05)');
+    g.addColorStop(1,'rgba(165,233,194,0)');
+    cx.fillStyle=g; cx.fillRect(scan-260,0,260,H);
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S35 — "Kim İçin, Nasıl?" — aynı yazılımın farklı kullanıcılara bağlandığı ağ dokusu
+let s35BGInit=false;
+function initS35BG(){
+  if(s35BGInit)return; s35BGInit=true;
+  const cv=document.getElementById('s35-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const N=18;
+  const nodes=Array.from({length:N},function(){return{
+    x:Math.random()*cv.width,y:Math.random()*cv.height,
+    vx:(Math.random()-0.5)*0.15,vy:(Math.random()-0.5)*0.15
+  };});
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    nodes.forEach(function(n){
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1;
+      if(n.y<0||n.y>H)n.vy*=-1;
+    });
+    for(let i=0;i<N;i++){
+      for(let j=i+1;j<N;j++){
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<170){
+          cx.strokeStyle='rgba(165,233,194,'+(0.09*(1-d/170))+')'; cx.lineWidth=1;
+          cx.beginPath();cx.moveTo(nodes[i].x,nodes[i].y);cx.lineTo(nodes[j].x,nodes[j].y);cx.stroke();
+        }
+      }
+    }
+    nodes.forEach(function(n){
+      cx.fillStyle='rgba(165,233,194,0.22)';
+      cx.beginPath();cx.arc(n.x,n.y,2,0,Math.PI*2);cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S55 — "Alan Verimliliği" — teknik çizim (blueprint) ızgarası + yayılan ölçek halkaları
+let s55BGInit=false;
+function initS55BG(){
+  if(s55BGInit)return; s55BGInit=true;
+  const cv=document.getElementById('s55-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  let rings=[], spawnT=0;
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(255,255,255,0.02)'; cx.lineWidth=1;
+    for(let x=0;x<W;x+=38){ cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke(); }
+    for(let y=0;y<H;y+=38){ cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke(); }
+    spawnT++;
+    if(spawnT>110){ spawnT=0; rings.push({x:Math.random()*W,y:Math.random()*H,r:0}); }
+    rings.forEach(function(r){r.r+=1.1;});
+    rings=rings.filter(function(r){return r.r<160;});
+    rings.forEach(function(r){
+      const a=0.16*(1-r.r/160);
+      cx.strokeStyle='rgba(165,233,194,'+a+')'; cx.lineWidth=1.3;
+      cx.beginPath();cx.arc(r.x,r.y,r.r,0,Math.PI*2);cx.stroke();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S5 — "Rakip Analizi" — pazarı tarayan yavaş radar sweep + ara sıra beliren rakip "blip"leri
+let s5BGInit=false;
+function initS5BG(){
+  if(s5BGInit)return; s5BGInit=true;
+  const cv=document.getElementById('s5-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const ox=cv.width*0.82, oy=cv.height*0.28, maxR=Math.max(cv.width,cv.height)*0.5;
+  let ang=0; const blips=[];
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    for(let r=maxR/4;r<=maxR;r+=maxR/4){
+      cx.strokeStyle='rgba(224,112,96,0.05)'; cx.lineWidth=1;
+      cx.beginPath();cx.arc(ox,oy,r,0,Math.PI*2);cx.stroke();
+    }
+    ang+=0.006;
+    cx.save(); cx.translate(ox,oy);
+    const grad=cx.createLinearGradient(0,0,maxR*Math.cos(ang),maxR*Math.sin(ang));
+    grad.addColorStop(0,'rgba(224,112,96,0.10)'); grad.addColorStop(1,'rgba(224,112,96,0)');
+    cx.fillStyle=grad;
+    cx.beginPath();cx.moveTo(0,0);cx.arc(0,0,maxR,ang-0.35,ang);cx.closePath();cx.fill();
+    cx.restore();
+    if(Math.random()<0.01){ blips.push({r:Math.random()*maxR*0.8+20,a:Math.random()*Math.PI*2,life:60}); }
+    for(let i=blips.length-1;i>=0;i--){
+      const b=blips[i]; b.life--;
+      if(b.life<=0){blips.splice(i,1);continue;}
+      const bx=ox+Math.cos(b.a)*b.r, by=oy+Math.sin(b.a)*b.r;
+      cx.fillStyle='rgba(224,112,96,'+(b.life/60*0.35)+')';
+      cx.beginPath();cx.arc(bx,by,2.4,0,Math.PI*2);cx.fill();
+    }
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S2 — "Sanal Sensör" — devre (circuit) hatları üzerinde akan veri paketleri
+let s2BGInit=false;
+function initS2BG(){
+  if(s2BGInit)return; s2BGInit=true;
+  const cv=document.getElementById('s2-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  function makePath(){
+    let x=Math.random()*W, y=Math.random()*H;
+    const pts=[{x,y}];
+    const steps=4+Math.floor(Math.random()*3);
+    for(let i=0;i<steps;i++){
+      if(Math.random()<0.5) x=Math.max(0,Math.min(W,x+(Math.random()-0.5)*W*0.5));
+      else y=Math.max(0,Math.min(H,y+(Math.random()-0.5)*H*0.5));
+      pts.push({x,y});
+    }
+    let len=0;
+    for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;len+=Math.sqrt(dx*dx+dy*dy);}
+    return {pts,len};
+  }
+  function pointAt(path,t){
+    let target=path.len*t, acc=0;
+    for(let i=1;i<path.pts.length;i++){
+      const a=path.pts[i-1],b=path.pts[i];
+      const segLen=Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2);
+      if(acc+segLen>=target){
+        const f=segLen===0?0:(target-acc)/segLen;
+        return {x:a.x+(b.x-a.x)*f, y:a.y+(b.y-a.y)*f};
+      }
+      acc+=segLen;
+    }
+    return path.pts[path.pts.length-1];
+  }
+  const paths=Array.from({length:6},function(){return{path:makePath(),t:Math.random(),spd:0.0009+Math.random()*0.0012};});
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    paths.forEach(function(p){
+      cx.strokeStyle='rgba(122,170,206,0.07)'; cx.lineWidth=1;
+      cx.beginPath();
+      p.path.pts.forEach(function(pt,i){ if(i===0)cx.moveTo(pt.x,pt.y); else cx.lineTo(pt.x,pt.y); });
+      cx.stroke();
+      p.t=(p.t+p.spd)%1;
+      const pos=pointAt(p.path,p.t);
+      const g=cx.createRadialGradient(pos.x,pos.y,0,pos.x,pos.y,7);
+      g.addColorStop(0,'rgba(165,233,194,0.55)');
+      g.addColorStop(1,'rgba(165,233,194,0)');
+      cx.fillStyle=g; cx.beginPath(); cx.arc(pos.x,pos.y,7,0,Math.PI*2); cx.fill();
+      cx.fillStyle='rgba(230,240,220,0.7)';
+      cx.beginPath(); cx.arc(pos.x,pos.y,1.6,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SPOS — "Sektördeki Konumu" — pazarı tarayan yeşil radar + yayılan halkalar
+let sposBGInit=false;
+function initSposBG(){
+  if(sposBGInit)return; sposBGInit=true;
+  const cv=document.getElementById('spos-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const ox=cv.width*0.28, oy=cv.height*0.5, maxR=Math.max(cv.width,cv.height)*0.55;
+  let ang=0, rings=[], spawnT=0;
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    ang+=0.005;
+    cx.save(); cx.translate(ox,oy);
+    const grad=cx.createLinearGradient(0,0,maxR*Math.cos(ang),maxR*Math.sin(ang));
+    grad.addColorStop(0,'rgba(165,233,194,0.09)'); grad.addColorStop(1,'rgba(165,233,194,0)');
+    cx.fillStyle=grad;
+    cx.beginPath();cx.moveTo(0,0);cx.arc(0,0,maxR,ang-0.4,ang);cx.closePath();cx.fill();
+    cx.restore();
+    spawnT++;
+    if(spawnT>130){ spawnT=0; rings.push({r:0}); }
+    rings.forEach(function(r){r.r+=1.3;});
+    rings=rings.filter(function(r){return r.r<maxR*0.7;});
+    rings.forEach(function(r){
+      const a=0.14*(1-r.r/(maxR*0.7));
+      cx.strokeStyle='rgba(165,233,194,'+a+')'; cx.lineWidth=1.2;
+      cx.beginPath();cx.arc(ox,oy,r.r,0,Math.PI*2);cx.stroke();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SGANTT — "Zaman Çizelgesi" — soldan sağa akan zaman parçacıkları (iz bırakan)
+let sganttBGInit=false;
+function initSganttBG(){
+  if(sganttBGInit)return; sganttBGInit=true;
+  const cv=document.getElementById('sgantt-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const streaks=Array.from({length:26},function(){return{
+    x:Math.random()*cv.width, y:Math.random()*cv.height,
+    len:20+Math.random()*40, spd:0.6+Math.random()*1.2, a:0.05+Math.random()*0.12
+  };});
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    streaks.forEach(function(s){
+      s.x+=s.spd;
+      if(s.x-s.len>W){ s.x=-Math.random()*100; s.y=Math.random()*H; }
+      const g=cx.createLinearGradient(s.x-s.len,s.y,s.x,s.y);
+      g.addColorStop(0,'rgba(165,233,194,0)');
+      g.addColorStop(1,'rgba(165,233,194,'+s.a+')');
+      cx.strokeStyle=g; cx.lineWidth=1.4;
+      cx.beginPath(); cx.moveTo(s.x-s.len,s.y); cx.lineTo(s.x,s.y); cx.stroke();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// S65 — "Nerede Duruyoruz?" — yükselen ışık parçacıkları (S1'deki düşüşün tersi: geleceğe doğru yükseliş)
+let s65BGInit=false;
+function initS65BG(){
+  if(s65BGInit)return; s65BGInit=true;
+  const cv=document.getElementById('s65-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const motes=Array.from({length:22},function(){return{
+    x:Math.random()*cv.width, y:cv.height+Math.random()*cv.height,
+    r:1+Math.random()*2, spd:0.18+Math.random()*0.3,
+    sway:Math.random()*Math.PI*2, swaySpd:0.006+Math.random()*0.01,
+    a:0.1+Math.random()*0.2
+  };});
+  (function draw(){
+    const W=cv.width,H=cv.height;
+    cx.clearRect(0,0,W,H);
+    motes.forEach(function(m){
+      m.y-=m.spd; m.sway+=m.swaySpd; m.x+=Math.sin(m.sway)*0.25;
+      if(m.y<-10){ m.y=H+10; m.x=Math.random()*W; }
+      const g=cx.createRadialGradient(m.x,m.y,0,m.x,m.y,m.r*3);
+      g.addColorStop(0,'rgba(190,225,170,'+m.a+')');
+      g.addColorStop(1,'rgba(190,225,170,0)');
+      cx.fillStyle=g; cx.beginPath(); cx.arc(m.x,m.y,m.r*3,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SWHY — "Neden Şimdi?" — yakınsayan ışık: eğilimler tek bir noktada (fırsat) birleşiyor
+let swhyBGInit=false;
+function initSwhyBG(){
+  if(swhyBGInit)return; swhyBGInit=true;
+  const cv=document.getElementById('swhy-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const ox=W*0.82, oy=H*0.5;
+  const motes=Array.from({length:16},function(){
+    const ang=Math.random()*Math.PI*2, dist=180+Math.random()*380;
+    return{ang:ang,dist:dist,spd:0.3+Math.random()*0.5,a:0.1+Math.random()*0.15,r:1+Math.random()*1.8};
+  });
+  let t=0;
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    t+=0.015;
+    const pulse=(Math.sin(t)+1)/2;
+    const g=cx.createRadialGradient(ox,oy,0,ox,oy,240+pulse*40);
+    g.addColorStop(0,'rgba(165,233,194,'+(0.13+pulse*0.06)+')');
+    g.addColorStop(1,'rgba(165,233,194,0)');
+    cx.fillStyle=g; cx.beginPath(); cx.arc(ox,oy,240+pulse*40,0,Math.PI*2); cx.fill();
+    motes.forEach(function(m){
+      m.dist-=m.spd;
+      if(m.dist<20){ m.dist=180+Math.random()*380; m.ang=Math.random()*Math.PI*2; }
+      const x=ox+Math.cos(m.ang)*m.dist, y=oy+Math.sin(m.ang)*m.dist;
+      cx.fillStyle='rgba(163,220,180,'+m.a+')';
+      cx.beginPath(); cx.arc(x,y,m.r,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SMARKET — "Pazar Büyüklüğü" — yükselen büyüme eğrisi (S1'deki çöküş çizgisinin tersi)
+let smarketBGInit=false;
+function initSmarketBG(){
+  if(smarketBGInit)return; smarketBGInit=true;
+  const cv=document.getElementById('smarket-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const N=40, pts=[];
+  let y=H*0.82;
+  for(let i=0;i<=N;i++){ const x=W*i/N; y+=(Math.random()-0.68)*H*0.035; pts.push({x:x,y:y}); }
+  for(let i=0;i<=N;i++){
+    const target=H*0.86-(H*0.62)*(i/N);
+    pts[i].y=pts[i].y*0.35+target*0.65;
+  }
+  const markers=[8,18,27,35].map(function(idx){return{idx:idx,phase:Math.random()*Math.PI*2};});
+  let t=0;
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(165,233,194,0.13)'; cx.lineWidth=1.6;
+    cx.beginPath();
+    pts.forEach(function(p,i){ if(i===0)cx.moveTo(p.x,p.y); else cx.lineTo(p.x,p.y); });
+    cx.stroke();
+    const grad=cx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'rgba(165,233,194,0.06)'); grad.addColorStop(1,'rgba(165,233,194,0)');
+    cx.lineTo(W,H); cx.lineTo(0,H); cx.closePath();
+    cx.fillStyle=grad; cx.fill();
+    t+=0.025;
+    markers.forEach(function(m){
+      const p=pts[m.idx];
+      const pulse=(Math.sin(t+m.phase)+1)/2;
+      const r=2.5+pulse*2;
+      cx.fillStyle='rgba(163,220,180,'+(0.2+pulse*0.25)+')';
+      cx.beginPath(); cx.arc(p.x,p.y,r,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SBIZ — "İş Modeli" — halka üzerinde dönen 3 gelir akışı (donanım/SaaS/AI'nin tekrarlayan döngüsü)
+let sbizBGInit=false;
+function initSbizBG(){
+  if(sbizBGInit)return; sbizBGInit=true;
+  const cv=document.getElementById('sbiz-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const ox=W*0.5, oy=H*0.6, r1=Math.min(W,H)*0.36;
+  const tokens=[{a:0},{a:Math.PI*2/3},{a:Math.PI*4/3}];
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(165,233,194,0.06)'; cx.lineWidth=1;
+    cx.beginPath(); cx.ellipse(ox,oy,r1,r1*0.55,0,0,Math.PI*2); cx.stroke();
+    tokens.forEach(function(tk){
+      tk.a+=0.006;
+      const x=ox+Math.cos(tk.a)*r1, y=oy+Math.sin(tk.a)*r1*0.55;
+      const g=cx.createRadialGradient(x,y,0,x,y,10);
+      g.addColorStop(0,'rgba(163,220,180,0.35)'); g.addColorStop(1,'rgba(163,220,180,0)');
+      cx.fillStyle=g; cx.beginPath(); cx.arc(x,y,10,0,Math.PI*2); cx.fill();
+      cx.fillStyle='rgba(200,240,210,0.55)';
+      cx.beginPath(); cx.arc(x,y,2.4,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SGTM — "Büyüme Stratejisi" — soldan sağa genişleyen huni dalgaları (aşamalı büyüme)
+let sgtmBGInit=false;
+function initSgtmBG(){
+  if(sgtmBGInit)return; sgtmBGInit=true;
+  const cv=document.getElementById('sgtm-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let ripples=[], t=0;
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    t++;
+    if(t%70===0){ ripples.push({x:W*0.06,r:0}); }
+    ripples.forEach(function(rp){ rp.r+=2.2; rp.x+=1.3; });
+    ripples=ripples.filter(function(rp){return rp.r<220 && rp.x<W+220;});
+    ripples.forEach(function(rp){
+      const a=0.16*(1-rp.r/220);
+      cx.strokeStyle='rgba(165,233,194,'+a+')'; cx.lineWidth=1.3;
+      cx.beginPath(); cx.arc(rp.x,H*0.5,rp.r,0,Math.PI*2); cx.stroke();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// STEAM — "Ekip" — iki renkli ağ: yeşil (kurucu yetkinlikleri) + mavi (aranan roller) birleşiyor
+let steamBGInit=false;
+function initSteamBG(){
+  if(steamBGInit)return; steamBGInit=true;
+  const cv=document.getElementById('steam-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  const nodes=[];
+  for(let i=0;i<9;i++){ nodes.push({x:Math.random()*W*0.5,y:Math.random()*H,vx:(Math.random()-0.5)*0.12,vy:(Math.random()-0.5)*0.12,c:'a'}); }
+  for(let i=0;i<9;i++){ nodes.push({x:W*0.5+Math.random()*W*0.5,y:Math.random()*H,vx:(Math.random()-0.5)*0.12,vy:(Math.random()-0.5)*0.12,c:'b'}); }
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    nodes.forEach(function(n){
+      n.x+=n.vx; n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1;
+      if(n.y<0||n.y>H)n.vy*=-1;
+    });
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x, dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<150){
+          const col=(nodes[i].c==='a'&&nodes[j].c==='a')?'165,233,194':(nodes[i].c==='b'&&nodes[j].c==='b')?'91,141,184':'150,170,140';
+          cx.strokeStyle='rgba('+col+','+(0.08*(1-d/150))+')'; cx.lineWidth=1;
+          cx.beginPath(); cx.moveTo(nodes[i].x,nodes[i].y); cx.lineTo(nodes[j].x,nodes[j].y); cx.stroke();
+        }
+      }
+    }
+    nodes.forEach(function(n){
+      cx.fillStyle = n.c==='a' ? 'rgba(165,233,194,0.28)' : 'rgba(91,141,184,0.28)';
+      cx.beginPath(); cx.arc(n.x,n.y,2.2,0,Math.PI*2); cx.fill();
+    });
+    requestAnimationFrame(draw);
+  })();
+}
+
+// SRISKS — "Risk & Güvenilirlik" — soldan (amber/risk) sağa (yeşil/çözülmüş) kayan nabız izleme çizgisi
+let srisksBGInit=false;
+function initSrisksBG(){
+  if(srisksBGInit)return; srisksBGInit=true;
+  const cv=document.getElementById('srisks-bg');if(!cv)return;
+  cv.width=cv.offsetWidth; cv.height=cv.offsetHeight;
+  const cx=cv.getContext('2d');
+  const W=cv.width,H=cv.height;
+  let offset=0; const midY=H*0.5;
+  function pulseY(x){
+    const m=((x%220)+220)%220;
+    if(m>90 && m<110){ const local=(m-90)/20; return midY-Math.sin(local*Math.PI)*40; }
+    return midY;
+  }
+  (function draw(){
+    cx.clearRect(0,0,W,H);
+    offset+=1.4;
+    cx.beginPath();
+    for(let x=0;x<=W;x+=4){
+      const y=pulseY(x-offset);
+      if(x===0)cx.moveTo(x,y); else cx.lineTo(x,y);
+    }
+    const grad=cx.createLinearGradient(0,0,W,0);
+    grad.addColorStop(0,'rgba(212,136,42,0.16)');
+    grad.addColorStop(0.5,'rgba(163,177,138,0.14)');
+    grad.addColorStop(1,'rgba(165,233,194,0.18)');
+    cx.strokeStyle=grad; cx.lineWidth=1.5;
+    cx.stroke();
+    requestAnimationFrame(draw);
+  })();
+}
+</script>
+<script>
+// ─── S0 CANVAS: LEAF VEIN + HEX ORGANIC TEXTURE ───
+(function(){
+  const cv = document.getElementById('s0-canvas');
+  if(!cv) return;
+  const cx = cv.getContext('2d');
+  let W, H, nodes, veins, hexes, t=0;
+
+  function resize(){
+    W = cv.width  = cv.offsetWidth;
+    H = cv.height = cv.offsetHeight;
+    build();
+  }
+
+  // Leaf vein node: branching structure
+  function buildVein(sx, sy, angle, len, depth, list){
+    if(depth<=0 || len<6) return;
+    const ex = sx + Math.cos(angle)*len;
+    const ey = sy + Math.sin(angle)*len;
+    list.push({sx,sy,ex,ey,depth,phase:Math.random()*Math.PI*2,len});
+    const spread = 0.35 + Math.random()*0.2;
+    buildVein(ex,ey,angle-spread, len*(0.55+Math.random()*0.1), depth-1, list);
+    buildVein(ex,ey,angle+spread, len*(0.55+Math.random()*0.1), depth-1, list);
+    if(depth>3) buildVein(ex,ey,angle, len*(0.65+Math.random()*0.1), depth-1, list);
+  }
+
+  function build(){
+    veins = [];
+    // 3 large vein systems at organic positions
+    const origins = [
+      {x:W*0.15, y:H*0.85, a:-Math.PI/3.5},
+      {x:W*0.82, y:H*0.9,  a:-Math.PI/2.4},
+      {x:W*0.5,  y:H*1.0,  a:-Math.PI/2},
+    ];
+    origins.forEach(o=>{
+      buildVein(o.x, o.y, o.a, Math.min(W,H)*0.38, 7, veins);
+    });
+
+    // Hexagonal grid — sparse, organic
+    hexes = [];
+    const hR = 52, rows = Math.ceil(H/(hR*1.73))+2, cols = Math.ceil(W/(hR*2))+2;
+    for(let r=0;r<rows;r++){
+      for(let c=0;c<cols;c++){
+        const x = c*hR*2 + (r%2)*hR + (Math.random()-0.5)*18;
+        const y = r*hR*1.73 + (Math.random()-0.5)*18;
+        if(Math.random()<0.38) hexes.push({x,y,r:hR*(0.7+Math.random()*0.4), phase:Math.random()*Math.PI*2, speed:0.3+Math.random()*0.4});
+      }
+    }
+  }
+
+  function hexPath(x,y,r){
+    cx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = Math.PI/6 + i*Math.PI/3;
+      i===0 ? cx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r)
+             : cx.lineTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+    }
+    cx.closePath();
+  }
+
+  function draw(){
+    t += 0.008;
+    cx.clearRect(0,0,W,H);
+
+    // Radial vignette
+    const grad = cx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.72);
+    grad.addColorStop(0,'rgba(28,43,15,0)');
+    grad.addColorStop(1,'rgba(25,43,15,0.7)');
+    cx.fillStyle=grad; cx.fillRect(0,0,W,H);
+
+    // Hexagons — subtle breathing
+    hexes.forEach(h=>{
+      const pulse = 0.03 + 0.025*Math.sin(t*h.speed + h.phase);
+      hexPath(h.x, h.y, h.r);
+      cx.strokeStyle=`rgba(24,106,59,${pulse})`;
+      cx.lineWidth=0.8;
+      cx.stroke();
+    });
+
+    // Veins — flowing pulse of light along each branch
+    veins.forEach(v=>{
+      const alpha = (0.06 + 0.07*Math.sin(t*0.7+v.phase)) * (v.depth/7);
+      cx.beginPath();
+      cx.moveTo(v.sx,v.sy);
+      cx.lineTo(v.ex,v.ey);
+      cx.strokeStyle=`rgba(165,233,194,${alpha})`;
+      cx.lineWidth = Math.max(0.4, v.depth*0.28);
+      cx.stroke();
+
+      // Moving sap dot — nutrient pulse travelling up the vein
+      const tp = (t*0.6 + v.phase*0.3) % 1;
+      const px = v.sx + (v.ex-v.sx)*tp;
+      const py = v.sy + (v.ey-v.sy)*tp;
+      const da = (0.4 + 0.4*Math.sin(t*2+v.phase)) * (v.depth/7);
+      cx.beginPath();
+      cx.arc(px, py, 1.4, 0, Math.PI*2);
+      cx.fillStyle=`rgba(163,200,120,${da})`;
+      cx.fill();
+    });
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+
+</script>
+<script>
+// ─── S6 ORB ANIMATION ───
+let orbAngle = 0;
+function animateOrbs(){
+  orbAngle += 0.006;
+
+  // S6 orbs — large sweeping movement
+  const ox  = Math.sin(orbAngle)*90,        oy  = Math.cos(orbAngle*.8)*70;
+  const ox2 = Math.sin(orbAngle*.6+1.2)*70, oy2 = Math.cos(orbAngle*.9+.8)*80;
+  const ox3 = Math.sin(orbAngle*1.4+2.5)*55,oy3 = Math.cos(orbAngle*1.1+1.8)*55;
+  const sc  = 1 + Math.sin(orbAngle*.4)*.08;
+  const sc2 = 1 + Math.sin(orbAngle*.5+1)*.1;
+  const sc3 = 1 + Math.sin(orbAngle*.7+2)*.12;
+  const rot = orbAngle*18;
+
+  ['orb6a','orb6b','orb6c'].forEach((id,i)=>{
+    const el=document.getElementById(id); if(!el) return;
+    const offX=[ox,ox2,ox3][i], offY=[oy,oy2,oy3][i];
+    const s=[sc,sc2,sc3][i], r=[rot,rot*.7,rot*1.3][i];
+    el.style.top='50%'; el.style.left='50%';
+    el.style.transform=`translate(calc(-50% + ${offX}px), calc(-50% + ${offY}px)) scale(${s}) rotate(${r}deg)`;
+  });
+
+  // S0 canvas handled separately
+
+  requestAnimationFrame(animateOrbs);
+}
+animateOrbs();
+
+
+
+
+// ─── GANTT CHART ─────────────────────────────────────────────────────────────
+(function() {
+  // Quarters: Q1 2026 = 0, Q2 2026 = 1, ... Q4 2027 = 7
+  const quarters = ['Q1 2026','Q2 2026','Q3 2026','Q4 2026','Q1 2027','Q2 2027','Q3 2027','Q4 2027'];
+  const NOW_Q = 2; // Q3 2026 = şu an
+
+  const sections = [
+    { label: 'YAZILIM', rows: [
+      { label: 'Fizik simülasyon motoru', start:0, end:1, type:'done' },
+      { label: 'Soft sensor algoritması', start:0, end:2, type:'doing' },
+      { label: 'IndexedDB + veri birikimi', start:0, end:1, type:'done' },
+      { label: 'ML model eğitimi', start:1, end:3, type:'doing' },
+      { label: 'Dashboard & demo', start:0, end:2, type:'doing' },
+      { label: 'FastAPI backend', start:3, end:5, type:'plan' },
+      { label: 'Mobil uygulama', start:5, end:7, type:'plan' },
+      { label: 'SaaS altyapısı', start:4, end:7, type:'plan' },
+    ]},
+    { label: 'DONANIM', rows: [
+      { label: 'ESP32 temel kurulum', start:0, end:1, type:'done' },
+      { label: 'NFT fiziksel prototip', start:1, end:2, type:'doing' },
+      { label: 'Sensör entegrasyonu', start:2, end:3, type:'doing' },
+      { label: 'Peristaltik pompa', start:3, end:4, type:'plan' },
+      { label: 'İlk pilot kurulum', start:4, end:6, type:'plan', milestone:true },
+    ]},
+    { label: 'SUNUM & DEMO', rows: [
+      { label: 'v1–v15 demo geliştirme', start:0, end:2, type:'done' },
+      { label: 'Sunum hazırlığı', start:1, end:2, type:'doing' },
+      { label: 'Staj sunumu', start:2, end:2.3, type:'milestone' },
+      { label: 'Pilot müşteri demo', start:4, end:5, type:'plan', milestone:true },
+    ]},
+  ];
+
+  function initGantt() { buildGantt(); }
+function buildGantt() {
+    try {
+    const wrap = document.getElementById('sgRows');
+    const qWrap = document.getElementById('sgQuarters');
+    if (!wrap || !qWrap) return;
+
+    // Quarter headers
+    qWrap.style.gridTemplateColumns = quarters.map(()=>'1fr').join(' ');
+    qWrap.innerHTML = quarters.map((q,i) =>
+      `<div class="sg-q-label" style="${i===NOW_Q?'color:#A5E9C2;font-weight:700':''}">${q}</div>`
+    ).join('');
+
+    wrap.innerHTML = '';
+
+    sections.forEach(sec => {
+      // Section label
+      const sl = document.createElement('div');
+      sl.className = 'sg-section';
+      sl.textContent = sec.label;
+      wrap.appendChild(sl);
+
+      sec.rows.forEach(row => {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'sg-row';
+
+        const labelEl = document.createElement('div');
+        labelEl.className = 'sg-row-label';
+        labelEl.textContent = row.label;
+        rowEl.appendChild(labelEl);
+
+        const track = document.createElement('div');
+        track.className = 'sg-track';
+        track.style.position = 'relative';
+
+        // Now line
+        const nowPct = (NOW_Q / (quarters.length - 1)) * 100;
+        const nowLine = document.createElement('div');
+        nowLine.className = 'sg-now-line';
+        nowLine.style.left = nowPct + '%';
+        track.appendChild(nowLine);
+
+        // Bar
+        const totalQ = quarters.length - 1;
+        const leftPct = (row.start / totalQ) * 100;
+        const widthPct = ((row.end - row.start) / totalQ) * 100;
+
+        const bar = document.createElement('div');
+        bar.className = 'sg-bar ' + (row.milestone ? 'milestone' : row.type);
+        bar.style.left = leftPct + '%';
+        bar.style.width = Math.max(widthPct, 2) + '%';
+        if (row.milestone) {
+          bar.style.height = '20px';
+          bar.style.width = Math.max(widthPct, 3) + '%';
+        }
+        track.appendChild(bar);
+        rowEl.appendChild(track);
+        wrap.appendChild(rowEl);
+      });
+    });
+    } catch(e) { console.warn("Gantt error:", e); }
+  }
+
+  // buildGantt was declared inside this IIFE's closure, so it was invisible
+  // to goTo() in the other <script> block — that's why the table never rendered.
+  window.buildGantt = buildGantt;
+  })();
+
+</script>
+</body>
+</html>

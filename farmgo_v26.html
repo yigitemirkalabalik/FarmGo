@@ -1,0 +1,3294 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmGo — Akıllı Tarım Simülasyonu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ── THEME TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --bg:        #F4EFE6;
+  --bg2:       #EDE8DF;
+  --bg3:       #E5DFD5;
+  --card:      #FDFAF5;
+  --border:    #D6CFC3;
+  --border2:   #C8BFB0;
+  --green:     #606C38;
+  --green2:    #4A5429;
+  --green-lt:  #A3B18A;
+  --green-hl:  #E2EFC9;
+  --accent:    #7C8C4A;
+  --text:      #2F3E22;
+  --text2:     #4A5240;
+  --muted:     #8A9070;
+  --muted2:    #B0B89A;
+  --danger:    #C0392B;
+  --warn:      #D4882A;
+  --info:      #3A6EA8;
+  --water:     #5B8DB8;
+  --water2:    #7AA8CE;
+  --shadow:    rgba(47,62,34,0.08);
+  --shadow2:   rgba(47,62,34,0.15);
+  --radius:    14px;
+  --radius-sm: 8px;
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="dark"] {
+  --bg:        #1C2218;
+  --bg2:       #222A1E;
+  --bg3:       #293124;
+  --card:      #252E21;
+  --border:    #3A4A32;
+  --border2:   #4A5C3E;
+  --green:     #8AB56A;
+  --green2:    #A3C880;
+  --green-lt:  #5A7A40;
+  --green-hl:  rgba(138,181,106,0.15);
+  --accent:    #9DC070;
+  --text:      #E8EEE0;
+  --text2:     #B8C8A8;
+  --muted:     #7A9068;
+  --muted2:    #5A6E4A;
+  --danger:    #E05A4A;
+  --warn:      #E09A40;
+  --info:      #6A9ED0;
+  --water:     #5A8AB8;
+  --water2:    #7AAACE;
+  --shadow:    rgba(0,0,0,0.25);
+  --shadow2:   rgba(0,0,0,0.4);
+}
+
+/* ── RESET ───────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  overflow-x: hidden;
+  transition: background var(--transition), color var(--transition);
+}
+.serif { font-family: 'DM Serif Display', serif; }
+
+/* ── LAYOUT ──────────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 260px;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  gap: 0;
+}
+header {
+  grid-column: 1/-1;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 0 var(--border);
+}
+.logo {
+  font-family: 'DM Serif Display', serif;
+  color: var(--green);
+  font-size: 20px;
+  letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--green);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+}
+.header-info {
+  display: flex; gap: 24px; align-items: center;
+  font-size: 12px; color: var(--muted); font-weight: 500;
+}
+.sim-time {
+  color: var(--green); font-weight: 600; font-size: 13px;
+  background: var(--green-hl);
+  padding: 3px 10px; border-radius: 20px;
+}
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+/* Theme toggle */
+.theme-toggle {
+  width: 40px; height: 22px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  cursor: pointer;
+  position: relative;
+  transition: background var(--transition);
+}
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: var(--green);
+  border-radius: 50%;
+  transition: transform var(--transition);
+}
+[data-theme="dark"] .theme-toggle { background: var(--green-lt); }
+[data-theme="dark"] .theme-toggle::after { transform: translateX(18px); }
+
+.left-panel {
+  grid-column: 1;
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.center { grid-column: 2; background: var(--bg); position: relative; overflow: hidden; }
+.right-panel {
+  grid-column: 3;
+  background: var(--card);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── CARDS ───────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.card:hover { box-shadow: 0 4px 16px var(--shadow); }
+.card-title {
+  font-size: 11px; font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── VISUAL HIERARCHY: secondary (supporting/operational) cards are toned down
+   so the eye isn't pulled equally to all 9 blocks at once ──────────────────── */
+.card-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  opacity: 0.82;
+  transition: opacity var(--transition), border-color var(--transition);
+}
+.card-secondary:hover { opacity: 1; border-color: var(--border2); }
+.card-secondary .card-title { font-size: 10px; opacity: 0.9; }
+
+/* ── HERO STRIP: the single primary focal point — model status + the core
+   "simülasyon vs tahmin" proof, big and unmissable, above the canvas ───────── */
+.hero-strip {
+  display: flex; align-items: stretch; gap: 18px;
+  background: var(--card);
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 10px var(--shadow);
+  flex-wrap: wrap;
+}
+.hero-item { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 140px; }
+.hero-item.hero-status { flex: 1 1 220px; }
+.hero-divider { width: 1px; background: var(--border); align-self: stretch; margin: 2px 0; }
+.hero-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.hero-value-row { display: flex; align-items: baseline; gap: 8px; }
+.hero-number { font-size: 26px; font-weight: 700; color: var(--green); line-height: 1; font-family: 'DM Serif Display', serif; }
+.hero-number-pred { color: var(--info); }
+.hero-arrow { font-size: 16px; color: var(--muted2); }
+.hero-bar-wrap { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.hero-bar { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.5s; }
+.hero-status-text { font-size: 12px; color: var(--text2); line-height: 1.4; }
+
+/* Canvas gets its own visually distinct "stage" so it reads as the main content,
+   not just another box in a row of equal panels. */
+.canvas-stage {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg2);
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── SENSOR GRID ─────────────────────────────────────────────────── */
+.sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sensor {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  transition: all var(--transition);
+}
+.sensor:hover { border-color: var(--green-lt); }
+.sensor-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.sensor-val { font-size: 22px; font-weight: 700; line-height: 1.2; margin: 2px 0; font-family: 'DM Serif Display', serif; }
+.sensor-unit { font-size: 11px; color: var(--muted); font-weight: 500; }
+.sensor-sub { font-size: 10px; color: var(--muted2); margin-top: 2px; }
+.ok     { color: var(--green); }
+.warn   { color: var(--warn); }
+.danger { color: var(--danger); }
+.info   { color: var(--info); }
+
+/* ── BARS ────────────────────────────────────────────────────────── */
+.bar-wrap {
+  background: var(--bg3);
+  border-radius: 4px; height: 5px;
+  margin-top: 5px; overflow: hidden;
+}
+.bar { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+.bar-green  { background: linear-gradient(90deg, var(--green), var(--green-lt)); }
+.bar-yellow { background: linear-gradient(90deg, var(--warn), #F0B050); }
+.bar-red    { background: linear-gradient(90deg, var(--danger), #E07060); }
+.bar-blue   { background: linear-gradient(90deg, var(--water), var(--water2)); }
+.bar-cyan   { background: linear-gradient(90deg, var(--info), var(--water2)); }
+
+/* ── BUTTONS ─────────────────────────────────────────────────────── */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text2);
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500;
+  transition: all var(--transition);
+  width: 100%; text-align: left;
+}
+.btn:hover { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.danger-btn { border-color: var(--danger); color: var(--danger); }
+.btn.danger-btn:hover { background: rgba(192,57,43,0.08); }
+
+.speed-btns { display: flex; gap: 4px; }
+.speed-btn {
+  padding: 4px 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+  transition: all var(--transition);
+}
+.speed-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+.speed-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
+
+/* ── PROGRESSIVE DISCLOSURE: tier toggle buttons ─────────────────────
+   Default state = only the canvas is visible. Each button reveals one
+   layer of supporting detail on demand, so a jury demo can start "empty"
+   and be walked through layer by layer. ─────────────────────────────── */
+.tier-btns { display: flex; gap: 4px; }
+.tier-btn {
+  padding: 5px 11px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.tier-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tier-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+
+/* ── RELAY / STATUS ──────────────────────────────────────────────── */
+.relay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.relay-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: all var(--transition);
+}
+.relay-item.on { border-color: var(--green); background: var(--green-hl); }
+.relay-label { font-size: 11px; font-weight: 600; color: var(--text2); }
+.relay-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted2);
+  transition: all var(--transition);
+  box-shadow: none;
+}
+.relay-item.on .relay-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(96,108,56,0.5);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ── LOG ─────────────────────────────────────────────────────────── */
+.log-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px; height: 120px; overflow-y: auto;
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 11px; line-height: 1.7;
+}
+.log-box::-webkit-scrollbar { width: 3px; }
+.log-box::-webkit-scrollbar-track { background: transparent; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.log-entry { display: flex; gap: 8px; }
+.log-time { color: var(--muted2); flex-shrink: 0; }
+
+/* ── CONTROLS ────────────────────────────────────────────────────── */
+.ctrl-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.ctrl-btn {
+  flex: 1; min-width: 80px;
+  padding: 7px 10px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text2); cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 500;
+  transition: all var(--transition);
+  text-align: center;
+}
+.ctrl-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.ctrl-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+.ctrl-btn.danger { border-color: var(--danger); color: var(--danger); }
+.ctrl-btn.danger:hover { background: rgba(192,57,43,0.08); }
+
+/* ── CHART CONTAINER ─────────────────────────────────────────────── */
+.chart-wrap { height: 100px; position: relative; }
+
+/* ── VIEW SYSTEM ─────────────────────────────────────────────────── */
+.view { display: none; }
+.view.active { display: block; }
+.view.active.layout-view { display: grid; }
+
+/* ── TAB NAV ─────────────────────────────────────────────────────── */
+.tab-nav {
+  display: flex; gap: 3px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 3px;
+}
+.tab-btn {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  transition: all var(--transition);
+}
+.tab-btn.active { background: var(--green); color: #fff; }
+.tab-btn:hover:not(.active) { color: var(--green); background: var(--green-hl); }
+
+/* ── LEARN VIEW ──────────────────────────────────────────────────── */
+.learn-wrap {
+  height: 100vh; overflow-y: auto;
+  padding: 24px 28px;
+  background: var(--bg);
+}
+.learn-wrap::-webkit-scrollbar { width: 4px; }
+.learn-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+.learn-grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; max-width: 1500px; margin: 0 auto; }
+.learn-header { max-width: 1500px; margin: 0 auto 20px; }
+.learn-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px; color: var(--green);
+  margin-bottom: 4px; letter-spacing: -0.3px;
+}
+.learn-sub { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 680px; font-weight: 400; }
+
+.learn-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px; margin-bottom: 14px;
+  transition: box-shadow var(--transition);
+}
+.learn-card:hover { box-shadow: 0 4px 20px var(--shadow); }
+.learn-card-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* ── PARAMS ──────────────────────────────────────────────────────── */
+.param-row { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.param-row label {
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.param-row label .val { color: var(--green); font-weight: 600; }
+.param-row input[type=range] {
+  width: 100%; accent-color: var(--green);
+  height: 4px; border-radius: 2px;
+}
+.param-row input[type=number] {
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  width: 100%;
+  transition: border-color var(--transition);
+}
+.param-row input[type=number]:focus {
+  outline: none; border-color: var(--green);
+}
+
+/* ── BIG BUTTONS ─────────────────────────────────────────────────── */
+.big-btn {
+  width: 100%; padding: 11px 16px;
+  background: var(--green);
+  border: none; border-radius: var(--radius-sm);
+  color: #fff; cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: all var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.big-btn:hover:not(:disabled) {
+  background: var(--green2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(96,108,56,0.3);
+}
+.big-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.big-btn.secondary {
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  color: var(--text2);
+}
+.big-btn.secondary:hover:not(:disabled) {
+  border-color: var(--green); color: var(--green);
+  background: var(--green-hl); box-shadow: none; transform: none;
+}
+.big-btn.danger-btn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+}
+.big-btn.danger-btn:hover:not(:disabled) {
+  border-color: var(--danger); color: var(--danger);
+  background: rgba(192,57,43,0.06); box-shadow: none; transform: none;
+}
+
+/* ── METRICS ─────────────────────────────────────────────────────── */
+.metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px; text-align: center;
+  transition: all var(--transition);
+}
+.metric-box:hover { border-color: var(--green-lt); }
+.metric-box .mval {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px; font-weight: 400; color: var(--green); line-height: 1;
+  transition: all 0.4s;
+}
+.metric-box .mlabel {
+  font-size: 10px; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;
+}
+
+/* ── PROGRESS ────────────────────────────────────────────────────── */
+.progress-wrap {
+  background: var(--bg3); border-radius: 6px;
+  height: 6px; overflow: hidden; margin: 10px 0;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--green-lt));
+  transition: width 0.2s ease;
+  border-radius: 6px;
+}
+
+/* ── DB STATUS ───────────────────────────────────────────────────── */
+.db-status {
+  font-size: 11px; color: var(--muted);
+  display: flex; align-items: center; gap: 7px; margin-top: 8px;
+  font-weight: 500;
+}
+.db-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px rgba(96,108,56,0.5);
+  animation: pulse-dot 2.5s infinite;
+}
+
+/* ── FORMULA BOX ─────────────────────────────────────────────────── */
+.formula-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px;
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 11px; line-height: 2;
+  color: var(--text2);
+}
+.formula-box .var { color: var(--green); font-weight: 600; }
+.formula-box .op  { color: var(--muted); }
+.formula-box .const { color: var(--info); font-weight: 600; }
+
+/* ── CHART CARDS ─────────────────────────────────────────────────── */
+.chart-card { height: 220px; }
+.chart-card canvas { max-height: 185px; }
+
+/* ── PLAYBACK ────────────────────────────────────────────────────── */
+.playback-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.play-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--green); border: none; color: #fff;
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.play-btn:hover { background: var(--green2); transform: scale(1.05); }
+.scrubber { flex: 1; accent-color: var(--green); }
+.speed-chip-row { display: flex; gap: 4px; }
+.speed-chip {
+  padding: 5px 10px; border-radius: 6px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+  transition: all var(--transition);
+}
+.speed-chip.active { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.speed-chip:hover:not(.active) { border-color: var(--green-lt); color: var(--green); }
+
+/* ── PHASE TABS ──────────────────────────────────────────────────── */
+.mode-toggle-row { display: flex; gap: 6px; margin-bottom: 18px; }
+.phase-tab-btn {
+  flex: 1; text-align: center; padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  transition: all var(--transition);
+}
+.phase-tab-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+.phase-tab-btn:hover:not(.active) { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+
+/* ── SLOT BUTTONS ────────────────────────────────────────────────── */
+.slot-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; background: var(--bg2);
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--muted); cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all var(--transition); width: 100%;
+}
+.slot-btn.active { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.slot-btn.filled { border-color: var(--info); color: var(--info); }
+.slot-btn.filled.active { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.slot-info { font-size: 9px; color: var(--muted); text-align: center; line-height: 1.4; font-weight: 500; }
+.slot-btn.filled .slot-info { color: var(--info); }
+.slot-btn.filled.active .slot-info { color: var(--green); }
+
+/* ── INFERENCE ───────────────────────────────────────────────────── */
+.inference-result {
+  background: var(--bg2); border: 1.5px solid var(--green);
+  border-radius: var(--radius); padding: 20px; text-align: center;
+  transition: all var(--transition);
+}
+.inference-result:hover { box-shadow: 0 4px 20px var(--shadow); }
+.pred-val {
+  font-family: 'DM Serif Display', serif;
+  font-size: 42px; color: var(--green); line-height: 1;
+  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.pred-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 6px; font-weight: 600; }
+.confidence { font-size: 12px; color: var(--info); margin-top: 8px; font-weight: 500; }
+.confidence-bar-wrap { background: var(--bg3); border-radius: 6px; height: 5px; overflow: hidden; margin-top: 8px; }
+.confidence-fill { height: 100%; background: linear-gradient(90deg, var(--warn), var(--green)); border-radius: 6px; transition: width 0.5s; }
+
+/* ── SCENARIO PILLS ──────────────────────────────────────────────── */
+.scenario-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.scenario-pill {
+  padding: 6px 14px; border-radius: 20px;
+  background: var(--bg2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer;
+  font-size: 11px; font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  transition: all var(--transition);
+}
+.scenario-pill:hover { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+.scenario-pill.active { background: var(--green-hl); border-color: var(--green); color: var(--green); }
+
+/* ── COMPARE TABLE ───────────────────────────────────────────────── */
+.compare-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+.compare-table th {
+  text-align: left; color: var(--muted); padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 1px; font-size: 10px; font-weight: 600;
+}
+.compare-table td { padding: 7px 10px; border-bottom: 1px solid var(--bg3); font-weight: 500; }
+.compare-table tr:hover td { background: var(--bg2); }
+
+/* ── DATA TABLE ──────────────────────────────────────────────────── */
+.dv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dv-table th {
+  text-align: left; padding: 9px 12px;
+  background: var(--bg2); border-bottom: 1.5px solid var(--border);
+  color: var(--muted); font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 1px;
+  position: sticky; top: 0;
+}
+.dv-table td { padding: 8px 12px; border-bottom: 1px solid var(--bg3); font-weight: 500; }
+.dv-table tr:hover td { background: var(--bg2); }
+
+/* ── SPLIT ROW ───────────────────────────────────────────────────── */
+.split-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ── SCALE PRESET BUTTONS ────────────────────────────────────────── */
+.scale-btn {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px 8px; gap: 4px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: all var(--transition);
+}
+.scale-btn:hover { border-color: var(--green); background: var(--green-hl); }
+.scale-btn .scale-label { font-size: 12px; font-weight: 700; color: var(--text2); }
+.scale-btn .scale-sub { font-size: 10px; color: var(--muted); font-weight: 500; text-align: center; }
+
+/* ── LIVE TEST METRICS ───────────────────────────────────────────── */
+.lt-val-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 12px; text-align: center;
+}
+.lt-val {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px; line-height: 1; color: var(--green);
+  transition: all 0.3s;
+}
+.lt-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+/* ── INFO BOX ────────────────────────────────────────────────────── */
+.info-box {
+  background: var(--green-hl); border: 1px solid rgba(96,108,56,0.2);
+  border-radius: var(--radius-sm); padding: 12px 14px;
+  font-size: 12px; color: var(--text2); line-height: 1.7; font-weight: 400;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .learn-grid { grid-template-columns: 1fr; }
+  .split-row  { grid-template-columns: 1fr; }
+  .layout     { grid-template-columns: 260px 1fr 0; }
+  .right-panel { display: none; }
+}
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; }
+  .left-panel { display: none; }
+}
+
+/* ── SCROLLBAR GLOBAL ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── CANVAS BACKGROUND FIX ───────────────────────────────────────── */
+/* ── TOGGLE SWITCH ───────────────────────────────────────────────── */
+.toggle-switch { position: relative; display: inline-block; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  display: block; width: 44px; height: 24px;
+  background: var(--bg3); border: 1.5px solid var(--border);
+  border-radius: 12px; cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  position: relative;
+}
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--muted2);
+  transition: transform var(--transition), background var(--transition);
+}
+.toggle-switch input:checked + .toggle-track { background: var(--green-hl); border-color: var(--green); }
+.toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: var(--green); }
+
+/* ── THEME BUTTON ────────────────────────────────────────────────── */
+.theme-toggle-btn {
+  width: 36px; height: 36px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); transition: all var(--transition);
+}
+.theme-toggle-btn:hover { border-color: var(--green); color: var(--green); background: var(--green-hl); }
+
+canvas { background: transparent !important; }
+</style>
+</head>
+
+<body>
+
+<!-- ══════════════════ LIVE SYSTEM VIEW ══════════════════ -->
+<div class="layout view layout-view active" id="view-live">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="5" y="1" width="4" height="12" rx="2" fill="#E2EFC9"/>
+          <rect x="1" y="3.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.55)"/>
+          <rect x="1" y="6.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.55)"/>
+          <rect x="1" y="9.5" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.55)"/>
+        </svg>
+      </div>
+      FarmGo
+    </div>
+    <div class="header-info">
+      <span style="font-weight:500;color:var(--text2)">Dikey Tarım Simülasyonu</span>
+      <span class="sim-time" id="simClock">Gün 1 — 00:00</span>
+      <span id="dayNight" style="color:var(--warn);font-size:12px;font-weight:600;">☀ Gündüz</span>
+    </div>
+    <div class="header-right">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchView('live')">Canlı Sistem</button>
+        <button class="tab-btn" onclick="switchView('learn')">Öğrenme Fazı</button>
+      </div>
+      <div class="tier-btns">
+        <button class="tier-btn" id="tierbtn-track" onclick="toggleTier('track')" title="Verileri Takip Et">📊 Veriler</button>
+        <button class="tier-btn" id="tierbtn-adjust" onclick="toggleTier('adjust')" title="Durumları Düzenle">🌱 Durumlar</button>
+        <button class="tier-btn" id="tierbtn-control" onclick="toggleTier('control')" title="Kontrol Et">🎛️ Kontrol</button>
+      </div>
+      <div class="speed-btns">
+        <button class="speed-btn active" onclick="setSpeed(1)">1×</button>
+        <button class="speed-btn" onclick="setSpeed(5)">5×</button>
+        <button class="speed-btn" onclick="setSpeed(10)">10×</button>
+      </div>
+      <button class="theme-toggle-btn" onclick="toggleTheme()" title="Tema değiştir" id="themeBtn">
+        <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel" data-tier="track" style="display:none;">
+    <div class="card card-secondary">
+      <div class="card-title">Sensör Verileri</div>
+      <div class="sensor-grid">
+        <div class="sensor">
+          <div class="sensor-label">Ortam Sıcaklığı</div>
+          <div class="sensor-val ok" id="s-temp">24.0</div>
+          <div class="sensor-unit">°C</div>
+          <div class="bar-wrap"><div class="bar bar-yellow" id="b-temp" style="width:40%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">Nem</div>
+          <div class="sensor-val ok" id="s-hum">65</div>
+          <div class="sensor-unit">%</div>
+          <div class="bar-wrap"><div class="bar bar-blue" id="b-hum" style="width:65%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">Su Sıcaklığı</div>
+          <div class="sensor-val ok" id="s-wtemp">20.0</div>
+          <div class="sensor-unit">°C</div>
+          <div class="bar-wrap"><div class="bar bar-blue" id="b-wtemp" style="width:40%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">Su Seviyesi</div>
+          <div class="sensor-val ok" id="s-level">80</div>
+          <div class="sensor-unit">%</div>
+          <div class="bar-wrap"><div class="bar bar-blue" id="b-level" style="width:80%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">pH</div>
+          <div class="sensor-val ok" id="s-ph">6.10</div>
+          <div class="sensor-unit">pH</div>
+          <div class="bar-wrap"><div class="bar bar-green" id="b-ph" style="width:60%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">EC</div>
+          <div class="sensor-val ok" id="s-ec">1.30</div>
+          <div class="sensor-unit">mS/cm</div>
+          <div class="bar-wrap"><div class="bar bar-green" id="b-ec" style="width:52%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">Klor</div>
+          <div class="sensor-val info" id="s-chlor">80</div>
+          <div class="sensor-unit">%</div>
+          <div class="bar-wrap"><div class="bar bar-cyan" id="b-chlor" style="width:80%"></div></div>
+        </div>
+        <div class="sensor">
+          <div class="sensor-label">Büyüme</div>
+          <div class="sensor-val ok" id="s-growth">0</div>
+          <div class="sensor-unit">%</div>
+          <div class="bar-wrap"><div class="bar bar-green" id="b-growth" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted2);line-height:1.5;">pH ve EC, dijital ikizin ürettiği simülasyon referans değeridir — FarmGo'nun gerçek sürümünde fiziksel prob kullanılmaz, bu değer yalnızca sanal sensörü test etmek içindir.</div>
+    </div>
+
+    <div class="card card-secondary">
+      <div class="card-title">pH / EC Trendi</div>
+      <div style="height:120px;position:relative;"><canvas id="trendChart"></canvas></div>
+    </div>
+
+    <div class="card card-secondary">
+      <div class="card-title">Sistem Logu</div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: HERO STRIP (asıl kanıt — model durumu + simülasyon/tahmin) + CANVAS -->
+  <div class="center" style="display:flex;flex-direction:column;overflow:hidden;min-height:400px;min-width:0;">
+    <div class="hero-strip" data-tier="track" style="display:none;">
+      <div class="hero-item hero-status">
+        <div class="hero-label">Model Durumu</div>
+        <div class="hero-status-text" id="live-model-status">Kullanılan model: kalibre edilmemiş (varsayılan katsayılar)</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-item">
+        <div class="hero-label">pH — Simülasyon → Tahmin</div>
+        <div class="hero-value-row">
+          <span class="hero-number" id="cmp-ph-real">6.10</span>
+          <span class="hero-arrow">→</span>
+          <span class="hero-number hero-number-pred" id="cmp-ph-pred">6.10</span>
+        </div>
+        <div class="hero-bar-wrap"><div class="hero-bar" id="cmp-ph-bar"></div></div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-item">
+        <div class="hero-label">EC — Simülasyon → Tahmin</div>
+        <div class="hero-value-row">
+          <span class="hero-number" id="cmp-ec-real">1.30</span>
+          <span class="hero-arrow">→</span>
+          <span class="hero-number hero-number-pred" id="cmp-ec-pred">1.30</span>
+        </div>
+      </div>
+    </div>
+    <div class="canvas-stage">
+      <canvas id="simCanvas" style="display:block;width:100%;height:100%;"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="card card-secondary" data-tier="control" style="display:none;">
+      <div class="card-title">Röle Durumları</div>
+      <div class="relay-grid">
+        <div class="relay-item" id="ri-pump">
+          <span class="relay-label">NFT Pompa</span>
+          <div class="relay-dot" id="r-pump"></div>
+        </div>
+        <div class="relay-item" id="ri-nutA">
+          <span class="relay-label">Besin A</span>
+          <div class="relay-dot" id="r-nutA"></div>
+        </div>
+        <div class="relay-item" id="ri-nutB">
+          <span class="relay-label">Besin B</span>
+          <div class="relay-dot" id="r-nutB"></div>
+        </div>
+        <div class="relay-item" id="ri-phdown">
+          <span class="relay-label">pH Down</span>
+          <div class="relay-dot" id="r-phdown"></div>
+        </div>
+        <div class="relay-item" id="ri-valve">
+          <span class="relay-label">Klor Valfi</span>
+          <div class="relay-dot" id="r-valve"></div>
+        </div>
+        <div class="relay-item" id="ri-led">
+          <span class="relay-label">Grow LED</span>
+          <div class="relay-dot" id="r-led"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card card-secondary" data-tier="adjust" style="display:none;">
+      <div class="card-title">Otonom Kontrol</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:500;color:var(--text2)">Otonom Mod</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="autoMode" checked onchange="toggleAuto()">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        </label>
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.5;" id="autoStatus">Sistem otonom dozajlama yapıyor.</div>
+    </div>
+
+    <div class="card card-secondary" data-tier="control" style="display:none;">
+      <div class="card-title">Manuel Kontroller</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <button class="ctrl-btn" onclick="manualTap('water')">Çeşme Suyu Ekle</button>
+        <button class="ctrl-btn" onclick="manualTap('pump')">NFT Pompa Aç/Kapat</button>
+        <button class="ctrl-btn" onclick="manualTap('nutAB')">A+B Besini Damlat</button>
+        <button class="ctrl-btn" onclick="manualTap('phdown')">pH Down Damlat</button>
+        <button class="ctrl-btn" onclick="manualTap('transfer')">Klor Tankı → Ana Tank</button>
+      </div>
+    </div>
+
+    <div class="card card-secondary" data-tier="adjust" style="display:none;">
+      <div class="card-title">Bitki Durumları</div>
+      <div id="plantStatusSummary" style="font-size:11px;color:var(--muted);margin-bottom:6px;"></div>
+      <div id="plantStatus" style="display:flex;flex-direction:column;gap:5px;max-height:280px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ LEARN VIEW ══════════════════ -->
+<div class="view" id="view-learn">
+  <div class="learn-wrap">
+
+    <!-- LEARN HEADER -->
+    <div class="learn-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="learn-title">Sanal Sensör — Öğrenme & Uygulama</div>
+        <div class="learn-sub">Gerçek pH/EC probu olmadan, çevresel verilerden kimyasal değerleri tahmin eden modelin nasıl kalibre olduğunu ve nasıl uygulandığını gösterir.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="tab-nav">
+          <button class="tab-btn" onclick="switchView('live')">Canlı Sistem</button>
+          <button class="tab-btn active" onclick="switchView('learn')">Öğrenme Fazı</button>
+        </div>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Tema değiştir" id="themeBtn2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- PHASE TABS -->
+    <div class="mode-toggle-row" style="max-width:1500px;margin:0 auto 20px;">
+      <button class="phase-tab-btn active" data-phase="train" onclick="setPhase('train')">1 — Öğrenme Fazı</button>
+      <button class="phase-tab-btn" data-phase="infer" onclick="setPhase('infer')">2 — Uygulama Fazı</button>
+      <button class="phase-tab-btn" data-phase="livetest" onclick="setPhase('livetest')">3 — Canlı Test</button>
+      <button class="phase-tab-btn" data-phase="dataview" onclick="setPhase('dataview')">4 — Veri Görüntüleyici</button>
+    </div>
+
+    <!-- ═══ TRAIN PHASE ═══ -->
+    <div id="phase-train" class="learn-grid">
+      <div>
+        <div class="learn-card">
+          <div class="learn-card-title">Hızlı Ölçek</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <button class="scale-btn" onclick="applyScale('small')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <span class="scale-label">Küçük</span>
+              <span class="scale-sub">50L · 4 bitki</span>
+            </button>
+            <button class="scale-btn" onclick="applyScale('medium')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <span class="scale-label">Orta</span>
+              <span class="scale-sub">200L · 20 bitki</span>
+            </button>
+            <button class="scale-btn" onclick="applyScale('large')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              <span class="scale-label">Büyük</span>
+              <span class="scale-sub">800L · 100 bitki</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Parametreler</div>
+          <div class="param-row">
+            <label>Tank Hacmi <span class="val" id="p-vol-val">200 L</span></label>
+            <input type="range" id="p-vol" min="50" max="1000" value="200" step="10" oninput="document.getElementById('p-vol-val').textContent=this.value+' L'">
+          </div>
+          <div class="param-row">
+            <label>Pompa Debisi <span class="val" id="p-flow-val">8 L/dk</span></label>
+            <input type="range" id="p-flow" min="1" max="30" value="8" step="0.5" oninput="document.getElementById('p-flow-val').textContent=this.value+' L/dk'">
+          </div>
+          <div class="param-row">
+            <label style="margin-bottom:5px;">Bitki Sayısı</label>
+            <input type="number" id="p-plants" value="20" min="1" step="1">
+          </div>
+          <div class="param-row">
+            <label>Simülasyon Süresi <span class="val" id="p-days-val">60 gün</span></label>
+            <input type="range" id="p-days" min="5" max="365" value="60" step="5" oninput="document.getElementById('p-days-val').textContent=this.value+' gün'">
+          </div>
+          <div class="param-row">
+            <label>Veri Sıklığı <span class="val" id="p-freq-val">5 dk/ölçüm</span></label>
+            <input type="range" id="p-freq" min="5" max="60" value="5" step="5" oninput="onFreqChange(this.value)">
+          </div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Model Slotu</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;" id="slot-btns">
+              <button class="slot-btn active" data-slot="A" onclick="selectSlot('A')">
+                <span style="font-size:13px;font-weight:700;">A</span>
+                <span class="slot-info" id="slot-info-A">Boş</span>
+              </button>
+              <button class="slot-btn" data-slot="B" onclick="selectSlot('B')">
+                <span style="font-size:13px;font-weight:700;">B</span>
+                <span class="slot-info" id="slot-info-B">Boş</span>
+              </button>
+              <button class="slot-btn" data-slot="C" onclick="selectSlot('C')">
+                <span style="font-size:13px;font-weight:700;">C</span>
+                <span class="slot-info" id="slot-info-C">Boş</span>
+              </button>
+            </div>
+          </div>
+
+          <button class="big-btn" id="btn-generate" onclick="runTrainingGeneration(false)" style="margin-bottom:8px;">Yeni Eğitim Başlat</button>
+
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Veri Ekle</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+              <div>
+                <label style="font-size:11px;color:var(--muted);font-weight:500;display:block;margin-bottom:4px;">Gün <span style="color:var(--green);font-weight:600;" id="append-day-val">30</span></label>
+                <input type="number" id="append-days" value="30" min="1" max="365" step="1" oninput="syncAppendInputs('days')">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--muted);font-weight:500;display:block;margin-bottom:4px;">Kayıt <span style="color:var(--green);font-weight:600;" id="append-rec-val">8.640</span></label>
+                <input type="number" id="append-records" value="8640" min="100" max="500000" step="100" oninput="syncAppendInputs('records')">
+              </div>
+            </div>
+            <button class="big-btn secondary" id="btn-append" onclick="runTrainingGeneration(true)">+ Veri Ekle (Model Koru)</button>
+          </div>
+
+          <button class="big-btn danger-btn" onclick="resetSimulation()">Verileri Sıfırla</button>
+          <div class="progress-wrap" style="margin-top:10px;"><div class="progress-bar" id="train-progress" style="width:0%"></div></div>
+          <div class="db-status"><span class="db-dot"></span><span id="db-status-text">Hazır</span></div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Soft Sensor Denklemi</div>
+          <div class="formula-box" id="formula-display">
+pH = <span class="const">6.850</span> + <span class="var">k_temp</span>·(T−20) + <span class="var">k_level</span>·seviye<br>
++ <span class="var">k_diurnal</span>·sin(gündüz) + <span class="var">k_seasonal</span>·sin(mevsim)<br>
+<span style="color:var(--muted2)">Katsayılar henüz kalibre edilmedi</span>
+          </div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Model Metrikleri</div>
+          <div class="metric-grid">
+            <div class="metric-box"><div class="mval" id="m-records">0</div><div class="mlabel">Kayıt</div></div>
+            <div class="metric-box"><div class="mval" id="m-rmse" style="color:var(--danger);">—</div><div class="mlabel">Hata (RMSE pH)</div></div>
+            <div class="metric-box"><div class="mval" id="m-accuracy">—</div><div class="mlabel">Doğruluk</div></div>
+            <div class="metric-box"><div class="mval" id="m-epochs">0</div><div class="mlabel">Öğrenme Turu</div></div>
+          </div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Kalibrasyon Logu</div>
+          <div class="log-box" id="trainLogBox"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="learn-card" style="height:260px;">
+          <div class="learn-card-title">Gerçek vs Sanal Sensör — pH</div>
+          <canvas id="trainPhChart" style="max-height:210px;"></canvas>
+        </div>
+        <div class="learn-card" style="height:260px;">
+          <div class="learn-card-title">Gerçek vs Sanal Sensör — EC (mS/cm)</div>
+          <canvas id="trainEcChart" style="max-height:210px;"></canvas>
+        </div>
+        <div class="learn-card" style="height:260px;">
+          <div class="learn-card-title">Hata Azalma Eğrisi — Model Nasıl Öğrendi</div>
+          <canvas id="errorChart" style="max-height:210px;"></canvas>
+        </div>
+        <div class="learn-card">
+          <div class="learn-card-title" style="justify-content:space-between;">
+            <span>Playback Kontrolü</span>
+            <span style="font-size:11px;color:var(--muted);font-weight:400;" id="playback-info">0 / 0 kayıt</span>
+          </div>
+          <div class="playback-controls">
+            <button class="play-btn" id="play-btn" onclick="togglePlayback()">▶</button>
+            <input type="range" class="scrubber" id="scrubber" min="0" max="100" value="0" oninput="scrubTo(this.value)">
+            <div class="speed-chip-row">
+              <button class="speed-chip" onclick="setPlaybackSpeed(1)">1×</button>
+              <button class="speed-chip active" onclick="setPlaybackSpeed(10)">10×</button>
+              <button class="speed-chip" onclick="setPlaybackSpeed(50)">50×</button>
+              <button class="speed-chip" onclick="setPlaybackSpeed(200)">200×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ INFERENCE PHASE ═══ -->
+    <div id="phase-infer" class="learn-grid" style="display:none;">
+      <div>
+        <div class="learn-card">
+          <div class="learn-card-title">Yeni Kule — Parametre Girişi</div>
+          <div class="info-box" style="margin-bottom:14px;">Bu konfigürasyonda fiziksel pH/EC probu yok. Sadece çevresel veriler veriliyor — model öğrendiği deneyimle tahmin üretiyor.</div>
+          <div class="param-row">
+            <label>Tank Hacmi <span class="val" id="i-vol-val">350 L</span></label>
+            <input type="range" id="i-vol" min="50" max="1000" value="350" step="10" oninput="document.getElementById('i-vol-val').textContent=this.value+' L'; liveInference()">
+          </div>
+          <div class="param-row">
+            <label>Su Sıcaklığı <span class="val" id="i-wtemp-val">21 °C</span></label>
+            <input type="range" id="i-wtemp" min="10" max="32" value="21" step="0.5" oninput="document.getElementById('i-wtemp-val').textContent=this.value+' °C'; liveInference()">
+          </div>
+          <div class="param-row">
+            <label>Su Seviyesi <span class="val" id="i-level-val">75 %</span></label>
+            <input type="range" id="i-level" min="5" max="100" value="75" step="1" oninput="document.getElementById('i-level-val').textContent=this.value+' %'; liveInference()">
+          </div>
+          <div class="param-row">
+            <label>Pompa Debisi <span class="val" id="i-flow-val">12 L/dk</span></label>
+            <input type="range" id="i-flow" min="1" max="30" value="12" step="0.5" oninput="document.getElementById('i-flow-val').textContent=this.value+' L/dk'; liveInference()">
+          </div>
+          <div class="param-row">
+            <label style="margin-bottom:5px;">Bitki Sayısı</label>
+            <input type="number" id="i-plants" value="12" min="1" step="1" oninput="liveInference()">
+          </div>
+          <div class="scenario-pills">
+            <div class="scenario-pill" onclick="applyScenario('home')">Ev Tipi Kule</div>
+            <div class="scenario-pill" onclick="applyScenario('commercial')">Ticari Sera</div>
+            <div class="scenario-pill" onclick="applyScenario('extreme')">Sıcak İklim</div>
+            <div class="scenario-pill" onclick="applyScenario('lowwater')">Düşük Su</div>
+          </div>
+        </div>
+        <div class="learn-card">
+          <div class="learn-card-title">Kullanılan Model</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7;" id="model-source-text">
+            Henüz kalibre edilmiş model yok — önce Öğrenme Fazı'nı çalıştırın.
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="split-row" style="margin-bottom:14px;">
+          <div class="inference-result">
+            <div class="pred-val" id="infer-ph">6.10</div>
+            <div class="pred-label">Tahmini pH</div>
+            <div class="confidence-bar-wrap"><div class="confidence-fill" id="infer-ph-conf" style="width:55%"></div></div>
+            <div class="confidence" id="infer-ph-conf-text">Güven: %55</div>
+          </div>
+          <div class="inference-result" style="border-color:var(--info);">
+            <div class="pred-val" id="infer-ec" style="color:var(--info);">1.30</div>
+            <div class="pred-label">Tahmini EC (mS/cm)</div>
+            <div class="confidence-bar-wrap"><div class="confidence-fill" id="infer-ec-conf" style="width:55%"></div></div>
+            <div class="confidence" id="infer-ec-conf-text">Güven: %55</div>
+          </div>
+        </div>
+        <div class="learn-card">
+          <div class="learn-card-title">Senaryo Karşılaştırması</div>
+          <table class="compare-table">
+            <thead><tr><th>Senaryo</th><th>Hacim</th><th>Sıcaklık</th><th>Seviye</th><th>pH</th><th>EC</th><th>Güven</th></tr></thead>
+            <tbody id="scenario-history"></tbody>
+          </table>
+        </div>
+        <div class="learn-card" style="height:260px;">
+          <div class="learn-card-title">Su Seviyesi → pH & EC İlişkisi</div>
+          <canvas id="sensitivityChart" style="max-height:210px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LIVE TEST ═══ -->
+    <div id="phase-livetest" class="learn-grid" style="display:none;">
+      <div>
+        <div class="learn-card">
+          <div class="learn-card-title">Test Parametreleri</div>
+          <div class="info-box" style="margin-bottom:14px;">Öğrenilmiş modeli farklı bir kule konfigürasyonunda gerçek zamanlı test eder.</div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Test Edilecek Slot</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+              <button class="slot-btn active" data-lt-slot="A" onclick="selectLtSlot('A')">
+                <span style="font-size:13px;font-weight:700;">A</span>
+                <span class="slot-info" id="lt-slot-info-A">—</span>
+              </button>
+              <button class="slot-btn" data-lt-slot="B" onclick="selectLtSlot('B')">
+                <span style="font-size:13px;font-weight:700;">B</span>
+                <span class="slot-info" id="lt-slot-info-B">—</span>
+              </button>
+              <button class="slot-btn" data-lt-slot="C" onclick="selectLtSlot('C')">
+                <span style="font-size:13px;font-weight:700;">C</span>
+                <span class="slot-info" id="lt-slot-info-C">—</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="param-row">
+            <label>Tank Hacmi <span class="val" id="lt-vol-val">300 L</span></label>
+            <input type="range" id="lt-vol" min="50" max="1000" value="300" step="10" oninput="document.getElementById('lt-vol-val').textContent=this.value+' L'">
+          </div>
+          <div class="param-row">
+            <label>Pompa Debisi <span class="val" id="lt-flow-val">10 L/dk</span></label>
+            <input type="range" id="lt-flow" min="1" max="30" value="10" step="0.5" oninput="document.getElementById('lt-flow-val').textContent=this.value+' L/dk'">
+          </div>
+          <div class="param-row">
+            <label style="margin-bottom:5px;">Bitki Sayısı</label>
+            <input type="number" id="lt-plants" value="8" min="1" step="1">
+          </div>
+          <div class="param-row">
+            <label>Hız <span class="val" id="lt-speed-val">5 dk/sn</span></label>
+            <input type="range" id="lt-speed" min="1" max="60" value="5" step="1" oninput="document.getElementById('lt-speed-val').textContent=this.value+' dk/sn'; updateLtSpeed()">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="big-btn" id="btn-lt-start" onclick="startLiveTest()">Testi Başlat</button>
+            <button class="big-btn secondary" id="btn-lt-stop" onclick="stopLiveTest()" disabled>Durdur</button>
+          </div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Anlık Değerler</div>
+          <div class="metric-grid">
+            <div class="metric-box"><div class="lt-val" id="lt-real-ph" style="color:var(--green);">—</div><div class="lt-label">Gerçek pH</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-pred-ph" style="color:var(--info);">—</div><div class="lt-label">Tahmin pH</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-real-ec" style="color:var(--warn);">—</div><div class="lt-label">Gerçek EC</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-pred-ec" style="color:var(--info);">—</div><div class="lt-label">Tahmin EC</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-wtemp" style="color:var(--muted);font-size:20px;">—</div><div class="lt-label">Su Sıcaklığı</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-level" style="color:var(--muted);font-size:20px;">—</div><div class="lt-label">Su Seviyesi</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-err-ph" style="font-size:20px;">—</div><div class="lt-label">Hata pH</div></div>
+            <div class="metric-box"><div class="lt-val" id="lt-err-ec" style="font-size:20px;">—</div><div class="lt-label">Hata EC</div></div>
+          </div>
+        </div>
+
+        <div class="learn-card">
+          <div class="learn-card-title">Test Logu</div>
+          <div class="log-box" id="lt-log"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="learn-card" style="height:420px;">
+          <div class="learn-card-title">Gerçek vs Sanal Sensör — Canlı</div>
+          <canvas id="ltChart" style="max-height:370px;"></canvas>
+        </div>
+        <div class="learn-card" style="margin-top:0;">
+          <div class="learn-card-title" style="color:var(--muted2);">Bu Panel Ne Gösterir?</div>
+          <div class="info-box">Öğrenme fazından farklı parametrelerle (farklı tank, debi, bitki) eğitilmiş model, burada yeni bir kule konfigürasyonuyla test edilir. Gerçek değerler ile sanal sensör tahminleri karşılaştırılır.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DATA VIEW ═══ -->
+    <div id="phase-dataview" style="display:none;max-width:1500px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span style="font-size:13px;font-weight:600;color:var(--green);" id="dv-total">Toplam 0 kayıt</span>
+          <span style="color:var(--muted);font-size:12px;" id="dv-page">Sayfa 1 / 1</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="big-btn secondary" style="padding:7px 14px;width:auto;" id="dv-prev" onclick="renderDataTable(dvPage-1)" disabled>← Önceki</button>
+          <button class="big-btn secondary" style="padding:7px 14px;width:auto;" id="dv-next" onclick="renderDataTable(dvPage+1)">Sonraki →</button>
+          <button class="big-btn secondary" style="padding:7px 14px;width:auto;" onclick="renderDataTable(0)">Yenile</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+        <table class="dv-table" style="min-width:900px;">
+          <thead>
+            <tr>
+              <th>#</th><th>Zaman</th><th>Su Sıcaklığı</th><th>Su Seviyesi</th>
+              <th style="color:var(--green);">Gerçek pH</th>
+              <th style="color:var(--info);">Tahmin pH</th>
+              <th style="color:var(--danger);">Hata pH</th>
+              <th style="color:var(--warn);">Gerçek EC</th>
+              <th style="color:var(--info);">Tahmin EC</th>
+              <th style="color:var(--danger);">Hata EC</th>
+            </tr>
+          </thead>
+          <tbody id="dv-tbody">
+            <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px;">Veri yok — önce Öğrenme Fazı'nı çalıştırın</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATABASE (Dexie / IndexedDB) ──────────────────────────────────────────
+// IndexedDB is blocked by some browsers (notably Chrome) when the page is opened
+// directly as a file:// URL instead of via a server. If that happens, `db` falls
+// back to a harmless no-op stub so the rest of the app (live simulation, canvas,
+// training-in-memory) keeps working — only cross-session persistence is lost.
+let db;
+try {
+  db = new Dexie('FarmGoSimDB');
+  db.version(99).stores({
+    olcumler: '++id, tick, dayOfSim, real_ph, real_ec, pred_ph, pred_ec, wtemp, level, flow, plants, vol',
+    model_state: '++id, epoch, rmse_ph, rmse_ec, timestamp',
+    events: '++id, timestamp, tip, mesaj'
+  });
+} catch (e) {
+  console.warn('Dexie/IndexedDB başlatılamadı (muhtemelen file:// üzerinden açıldı) — kalıcı depolama devre dışı, simülasyon normal çalışmaya devam ediyor.', e);
+  db = null;
+}
+if (!db) {
+  const noopTable = () => ({
+    clear: async () => {}, add: async () => {}, bulkAdd: async () => {},
+    count: async () => 0, offset: () => ({ limit: () => ({ toArray: async () => [] }) }),
+    orderBy: () => ({ reverse: () => ({ limit: () => ({ toArray: async () => [] }) }) }),
+    toArray: async () => []
+  });
+  db = { open: async () => {}, olcumler: noopTable(), model_state: noopTable(), events: noopTable() };
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const S = {
+  // time
+  tick: 0, speed: 1, simMinute: 0, simDay: 1,
+  // environment
+  temp: 24, hum: 65, wtemp: 20,
+  isDay: true,
+  // tanks
+  mainLevel: 80,    // % ana tank
+  chlorLevel: 80,   // % klor tank su seviyesi
+  chlorConc: 80,    // % klor konsantrasyonu
+  // chemistry
+  ph: 6.1, ec: 1.30,
+  // digital-twin config — same physics/model functions as the Öğrenme Fazı use these.
+  // (Faz 2'de: seçili Model Slot'un vol/plants değerleriyle otomatik güncellenecek)
+  tankVol: 200,     // L — "Orta" ölçek varsayımı
+  pumpFlow: 8,       // L/dk
+  // soft sensor
+  predPh: 6.1, predEc: 1.30,
+  // relays
+  pumpOn: false, pumpManual: false,
+  nutAOn: false, nutBOn: false, phdownOn: false, valveOn: false, ledOn: false,
+  nutATimer: 0, nutBTimer: 0, phdownTimer: 0, valveTimer: 0,
+  // pump cycle: 15s on / 15s off
+  pumpCycle: 0,
+  // plants: growth 0-100, health 0-1, color
+  plants: [
+    {growth:0,health:1,leaf:0,root:0},
+    {growth:0,health:1,leaf:0,root:0},
+    {growth:0,health:1,leaf:0,root:0},
+    {growth:0,health:1,leaf:0,root:0},
+    {growth:0,health:1,leaf:0,root:0},
+  ],
+  autoMode: true,
+  // history
+  phHistory: [], ecHistory: [], timeLabels: [],
+  // water flow animation
+  waterParticles: [],
+  // bubbles in chlor tank
+  bubbles: [],
+  // drip animations
+  drips: [],
+};
+
+// ─── CHART ───────────────────────────────────────────────────────────────────
+// Guarded: if the Chart.js CDN script failed to load (no internet, firewall,
+// ad-blocker, corporate proxy, etc.), `Chart` is undefined. This call used to run
+// completely unguarded, at the very top of the script — meaning a single failed
+// CDN load silently killed the entire app (canvas, simulation, everything below
+// this point never ran). Now a failure here only disables the small trend chart;
+// the live simulation/canvas is completely independent of it.
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+let trendChart = null;
+try {
+  trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: 'pH', data: [], borderColor: '#606C38', borderWidth: 1.5, pointRadius: 0, tension: 0.4, yAxisID: 'y1' },
+        { label: 'EC', data: [], borderColor: '#3A6EA8', borderWidth: 1.5, pointRadius: 0, tension: 0.4, yAxisID: 'y2' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y1: { position: 'left', min: 4, max: 8.5, ticks: { color: '#606C38', font: {size:9} }, grid: { color: 'var(--border)' }, border:{display:false} },
+        y2: { position: 'right', min: 0, max: 3, ticks: { color: '#3A6EA8', font: {size:9} }, grid: { display: false }, border:{display:false} },
+      }
+    }
+  });
+} catch (e) {
+  console.warn('Chart.js yüklenemedi (CDN erişimi engellenmiş olabilir) — pH/EC trend grafiği devre dışı, canlı sistem/canvas etkilenmeden çalışmaya devam ediyor.', e);
+  trendChart = { data: { labels: [], datasets: [{ data: [] }, { data: [] }] }, update: () => {} };
+}
+
+// ─── CANVAS ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+const canvasStageEl = document.querySelector('.canvas-stage');
+function resizeCanvas() {
+  // Prefer the canvas's own box; if that's 0 (can happen on some very first
+  // layout passes), fall back to its container, then to a safe default —
+  // the canvas must NEVER be left at 0×0, since that silently makes every
+  // draw() call invisible with no error.
+  let w = canvas.offsetWidth, h = canvas.offsetHeight;
+  if (!w || !h) {
+    const rect = canvasStageEl ? canvasStageEl.getBoundingClientRect() : null;
+    w = w || (rect && rect.width) || window.innerWidth || 800;
+    h = h || (rect && rect.height) || window.innerHeight || 600;
+  }
+  canvas.width = Math.max(1, Math.round(w));
+  canvas.height = Math.max(1, Math.round(h));
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+// Defensive re-sizing: guarantees the canvas gets its real pixel size even if the
+// very first synchronous call happened before the grid layout fully settled
+// (a common cause of a canvas rendering as blank until some interaction/resize).
+requestAnimationFrame(resizeCanvas);
+window.addEventListener('load', resizeCanvas);
+setTimeout(resizeCanvas, 150);
+// ResizeObserver is the robust, modern fix: it fires whenever the canvas's
+// container actually gets (or changes) a real size — covering font-loading
+// reflows, tier-panel open/close, and any other case a one-off timer could miss.
+if (typeof ResizeObserver !== 'undefined' && canvasStageEl) {
+  new ResizeObserver(() => resizeCanvas()).observe(canvasStageEl);
+}
+// Brute-force safety net: some environments (in particular some file:// setups)
+// don't settle their layout in time for any of the triggers above. Instead of
+// betting on one exact timing signal being right, just keep re-checking for a
+// few seconds and force an immediate repaint every time — whatever the exact
+// cause, this guarantees the tank/plants appear on their own, with no click needed.
+let __resizeGuardTicks = 0;
+const __resizeGuard = setInterval(() => {
+  resizeCanvas();
+  if (typeof draw === 'function') draw();
+  if (++__resizeGuardTicks > 20) clearInterval(__resizeGuard); // ~4s at 200ms, then stop
+}, 200);
+
+// ─── LOGGING ─────────────────────────────────────────────────────────────────
+function log(msg, type='info') {
+  const box = document.getElementById('logBox');
+  const d = document.createElement('div');
+  d.className = 'log-entry ' + type;
+  d.textContent = `[${fmtTime()}] ${msg}`;
+  box.prepend(d);
+  while (box.children.length > 40) box.removeChild(box.lastChild);
+}
+function fmtTime() {
+  const h = String(Math.floor(S.simMinute / 60) % 24).padStart(2,'0');
+  const m = String(S.simMinute % 60).padStart(2,'0');
+  return `${h}:${m}`;
+}
+
+// ─── PHYSICS LOOP ────────────────────────────────────────────────────────────
+function physicsStep() {
+  // Snapshot of last tick's FINAL water level (post-dosing/valve) — this is the
+  // correct "prevLevel" for the digital-twin chemistry step below.
+  const levelAtTickStart = S.mainLevel;
+
+  S.tick++;
+  S.simMinute += S.speed;
+  if (S.simMinute >= 1440) { S.simMinute -= 1440; S.simDay++; }
+
+  const hour = (S.simMinute / 60) % 24;
+  S.isDay = hour >= 6 && hour < 20;
+
+  // Temperature sinusoid
+  const baseTemp = 22 + 6 * Math.sin((hour - 6) / 24 * 2 * Math.PI);
+  S.temp = baseTemp + (Math.random() - 0.5) * 0.4;
+  S.temp = Math.max(18, Math.min(30, S.temp));
+  S.hum = 60 + 20 * Math.sin((hour - 14) / 24 * 2 * Math.PI) + (Math.random() - 0.5) * 2;
+  S.hum = Math.max(50, Math.min(90, S.hum));
+  S.wtemp = S.temp * 0.7 + 6 + (Math.random() - 0.5) * 0.2;
+
+  // Pump cycle (15s on / 15s off in sim ticks)
+  S.pumpCycle++;
+  const cycleLen = Math.max(1, Math.round(30 / S.speed));
+  if (!S.pumpManual) {
+    S.pumpOn = (S.pumpCycle % cycleLen) < Math.round(cycleLen / 2);
+  }
+  S.ledOn = S.isDay;
+
+  // Evaporation: temp-dependent, more if pump is on
+  const evapRate = (0.003 + (S.temp - 18) * 0.0002) * S.speed;
+  S.mainLevel -= evapRate;
+
+  // Plant consumption
+  let totalGrowthFactor = 0;
+  S.plants.forEach(p => {
+    if (p.growth < 100) {
+      const phOk = S.ph >= 5.8 && S.ph <= 6.5;
+      const ecOk = S.ec >= 1.0 && S.ec <= 2.0;
+      const pumpOk = S.pumpOn;
+      const gf = (phOk ? 1 : 0.1) * (ecOk ? 1 : 0.1) * (pumpOk ? 1 : 0.3);
+      p.health = Math.min(1, p.health + (gf > 0.5 ? 0.001 : -0.002) * S.speed);
+      p.growth += gf * 0.012 * S.speed;
+      p.leaf = p.growth;
+      p.root = p.growth * 0.8;
+      totalGrowthFactor += gf;
+      // Plant drinks water (chemistry/ion-uptake effect is modeled inside simPhysicsStep,
+      // via the shared digital-twin engine, so it isn't duplicated here)
+      S.mainLevel -= 0.0005 * gf * S.speed;
+    }
+  });
+
+  // ── Digital-twin ground truth: same physics engine used to generate training data ──
+  // (simPhysicsStep / virtualSensor — see "Sanal Sensör Öğrenme" panel below)
+  const t_hours = (S.simDay - 1) * 24 + S.simMinute / 60;
+  const twinState = simPhysicsStep(
+    { ph: S.ph, ec: S.ec },
+    S.wtemp, S.mainLevel, levelAtTickStart,
+    S.pumpFlow, S.plants.length, S.tankVol, t_hours, S.speed
+  );
+  S.ph = twinState.ph;
+  S.ec = twinState.ec;
+
+  // Sanal sensör tahmini — o an kullanılan model neyse onu kullanır
+  // (henüz eğitim yapılmadıysa freshModel() ile "kalibre edilmemiş" başlangıç katsayıları)
+  const liveModel = trainedModel || freshModel();
+  const vs = virtualSensor(S.wtemp, S.mainLevel, S.pumpFlow, S.plants.length, S.tankVol, t_hours, liveModel);
+  S.predPh = clampPh(vs.pred_ph);
+  S.predEc = clampEc(vs.pred_ec);
+
+  // Chlorine evaporation
+  S.chlorConc -= 0.05 * S.speed;
+  S.chlorConc = Math.max(0, S.chlorConc);
+
+  // Clamp
+  S.mainLevel = Math.max(0, Math.min(100, S.mainLevel));
+  S.ph = Math.max(4.0, Math.min(8.5, S.ph));
+  S.ec = Math.max(0.1, Math.min(4.0, S.ec));
+
+  // Autonomous dosing
+  if (S.autoMode) {
+    // EC low → dose nutrients
+    if (S.predEc < 1.2 && S.nutATimer <= 0) {
+      S.nutAOn = true; S.nutBOn = true;
+      S.nutATimer = Math.round(2 / S.speed * 10);
+      S.ec += 0.08;
+      addDrip('nutA'); addDrip('nutB');
+      log('EC düşük — A+B besini dozlandı', 'warn');
+    }
+    // pH high → dose pH down
+    if (S.predPh > 6.3 && S.phdownTimer <= 0) {
+      S.phdownOn = true;
+      S.phdownTimer = Math.round(1 / S.speed * 10);
+      S.ph -= 0.15;
+      addDrip('phdown');
+      log('pH yüksek — pH Down dozlandı', 'warn');
+    }
+    // Water low → open valve
+    if (S.mainLevel < 40 && S.chlorConc < 5 && S.chlorLevel > 10) {
+      S.valveOn = true;
+      S.mainLevel += 0.5 * S.speed;
+      S.chlorLevel -= 0.3 * S.speed;
+      if (!S.valveTimer) log('Su seviyesi düşük — Klor tankı valfi açıldı', 'info');
+      S.valveTimer = 5;
+    } else if (S.mainLevel >= 70) {
+      S.valveOn = false; S.valveTimer = 0;
+    }
+  }
+
+  // Timer countdowns
+  if (S.nutATimer > 0) { S.nutATimer--; if (S.nutATimer <= 0) { S.nutAOn = false; S.nutBOn = false; } }
+  if (S.phdownTimer > 0) { S.phdownTimer--; if (S.phdownTimer <= 0) S.phdownOn = false; }
+  if (S.valveTimer > 0) { S.valveTimer--; if (S.valveTimer <= 0) S.valveOn = false; }
+
+  // History (every 60 real ticks)
+  if (S.tick % Math.max(1, Math.round(60 / S.speed)) === 0) {
+    S.phHistory.push(+S.ph.toFixed(2));
+    S.ecHistory.push(+S.ec.toFixed(2));
+    S.timeLabels.push(fmtTime());
+    if (S.phHistory.length > 60) { S.phHistory.shift(); S.ecHistory.shift(); S.timeLabels.shift(); }
+    trendChart.data.labels = S.timeLabels;
+    trendChart.data.datasets[0].data = S.phHistory;
+    trendChart.data.datasets[1].data = S.ecHistory;
+    trendChart.update('none');
+  }
+
+  // Spawn water particles in tower if pump on
+  if (S.pumpOn && Math.random() < 0.4) {
+    S.waterParticles.push({ x: 0, y: 0, life: 1, speed: 1 + Math.random() });
+  }
+  S.waterParticles = S.waterParticles.filter(p => p.life > 0);
+  S.waterParticles.forEach(p => { p.y += p.speed; p.life -= 0.03; });
+
+  // Bubbles in chlor tank
+  if (S.chlorConc > 2 && Math.random() < 0.3) {
+    S.bubbles.push({ x: 0.3 + Math.random() * 0.4, y: 1, size: 2 + Math.random() * 3, speed: 0.005 + Math.random() * 0.01 });
+  }
+  S.bubbles = S.bubbles.filter(b => b.y > 0);
+  S.bubbles.forEach(b => { b.y -= b.speed; });
+
+  // Drip cleanup
+  S.drips = S.drips.filter(d => d.life > 0);
+  S.drips.forEach(d => { d.y += 2; d.life -= 0.05; });
+
+  updateUI();
+}
+
+function addDrip(type) {
+  S.drips.push({ type, x: 0, y: 0, life: 1 });
+}
+
+// ─── UI UPDATE ───────────────────────────────────────────────────────────────
+function colorClass(v, low, okLow, okHigh, high) {
+  if (v < low || v > high) return 'danger';
+  if (v < okLow || v > okHigh) return 'warn';
+  return 'ok';
+}
+function setVal(id, v, cls) {
+  const el = document.getElementById(id);
+  el.textContent = v;
+  el.className = 'sensor-val ' + cls;
+}
+function setBar(id, pct, color) {
+  const el = document.getElementById(id);
+  el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+  el.className = 'bar ' + color;
+}
+function updateUI() {
+  // Sensors
+  const phCls = colorClass(S.ph, 5.0, 5.8, 6.5, 7.5);
+  const ecCls = colorClass(S.ec, 0.5, 1.0, 2.5, 3.5);
+  const lCls = colorClass(S.mainLevel, 10, 30, 90, 100);
+  setVal('s-temp', S.temp.toFixed(1), colorClass(S.temp,10,18,28,35));
+  setVal('s-hum', Math.round(S.hum), colorClass(S.hum,30,50,80,95));
+  setVal('s-wtemp', S.wtemp.toFixed(1), colorClass(S.wtemp,10,15,25,30));
+  setVal('s-level', Math.round(S.mainLevel), lCls);
+  setVal('s-ph', S.ph.toFixed(2), phCls);
+  setVal('s-ec', S.ec.toFixed(2), ecCls);
+  setVal('s-chlor', Math.round(S.chlorConc), S.chlorConc < 5 ? 'ok' : 'warn');
+  const avgGrowth = S.plants.length ? (S.plants.reduce((a,p) => a+p.growth, 0) / S.plants.length) : 0;
+  setVal('s-growth', Math.round(avgGrowth), avgGrowth > 50 ? 'ok' : 'info');
+
+  setBar('b-temp', (S.temp-18)/(30-18)*100, 'bar-yellow');
+  setBar('b-hum', S.hum, 'bar-blue');
+  setBar('b-wtemp', (S.wtemp-10)/20*100, 'bar-blue');
+  setBar('b-level', S.mainLevel, S.mainLevel < 30 ? 'bar-red' : 'bar-blue');
+  setBar('b-ph', (S.ph-4)/(8.5-4)*100, phCls==='ok'?'bar-green':phCls==='warn'?'bar-yellow':'bar-red');
+  setBar('b-ec', S.ec/4*100, ecCls==='ok'?'bar-green':ecCls==='warn'?'bar-yellow':'bar-red');
+  setBar('b-chlor', S.chlorConc, 'bar-cyan');
+  setBar('b-growth', avgGrowth, 'bar-green');
+
+  // Soft sensor compare
+  document.getElementById('cmp-ph-real').textContent = S.ph.toFixed(2);
+  document.getElementById('cmp-ph-pred').textContent = S.predPh.toFixed(2);
+  document.getElementById('cmp-ec-real').textContent = S.ec.toFixed(2);
+  document.getElementById('cmp-ec-pred').textContent = S.predEc.toFixed(2);
+
+  // Live model status — which model is actually driving the prediction above.
+  // This keeps the "Canlı Sistem" panel honest: it never silently uses a fake/decorative number.
+  const modelStatusEl = document.getElementById('live-model-status');
+  if (modelStatusEl) {
+    if (trainedModel) {
+      const lastRmse = rmseHistory.at(-1);
+      modelStatusEl.textContent = `Kullanılan model: eğitilmiş (${allRecords.length.toLocaleString()} kayıt` +
+        (lastRmse ? `, RMSE pH ${lastRmse.rmse_ph.toFixed(3)}` : '') + ')';
+    } else {
+      modelStatusEl.textContent = 'Kullanılan model: kalibre edilmemiş (varsayılan katsayılar) — Öğrenme Fazı\'nı çalıştırın';
+    }
+  }
+
+  // Relays — update both dot and parent item
+  const setRelay = (dotId, itemId, on) => {
+    const dot  = document.getElementById(dotId);
+    const item = document.getElementById(itemId);
+    if (dot)  dot.className  = 'relay-dot' + (on ? ' on' : '');
+    if (item) item.className = 'relay-item' + (on ? ' on' : '');
+  };
+  setRelay('r-pump',   'ri-pump',   S.pumpOn);
+  setRelay('r-nutA',   'ri-nutA',   S.nutAOn);
+  setRelay('r-nutB',   'ri-nutB',   S.nutBOn);
+  setRelay('r-phdown', 'ri-phdown', S.phdownOn);
+  setRelay('r-valve',  'ri-valve',  S.valveOn);
+  setRelay('r-led',    'ri-led',    S.ledOn);
+
+  // Clock
+  const h = String(Math.floor(S.simMinute / 60) % 24).padStart(2,'0');
+  const m = String(S.simMinute % 60).padStart(2,'0');
+  document.getElementById('simClock').textContent = `Gün ${S.simDay} — ${h}:${m}`;
+  document.getElementById('dayNight').textContent  = S.isDay ? '☀ Gündüz' : '🌙 Gece';
+  document.getElementById('dayNight').style.color  = S.isDay ? 'var(--warn)' : 'var(--info)';
+
+  // Plants
+  const ps = document.getElementById('plantStatus');
+  const summaryEl = document.getElementById('plantStatusSummary');
+  if (summaryEl) {
+    const avgG = S.plants.length ? (S.plants.reduce((a, p) => a + p.growth, 0) / S.plants.length) : 0;
+    const avgH = S.plants.length ? (S.plants.reduce((a, p) => a + p.health, 0) / S.plants.length) : 0;
+    summaryEl.textContent = `${S.plants.length} bitki — ort. büyüme %${avgG.toFixed(0)}, ort. sağlık %${(avgH * 100).toFixed(0)} (seçili model konfigürasyonu: ${S.tankVol}L, ${S.plants.length} bitki)`;
+  }
+  ps.innerHTML = S.plants.map((p, i) => {
+    const g    = Math.round(p.growth);
+    const hcls = p.health > 0.7 ? 'ok' : p.health > 0.4 ? 'warn' : 'danger';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--bg3);">
+      <span style="font-size:12px;font-weight:500;color:var(--text2);">Bitki ${i+1}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="${hcls}" style="font-size:12px;font-weight:600;">${(p.health*100).toFixed(0)}%</span>
+        <div style="width:48px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+          <div style="width:${g}%;height:100%;background:var(--green);border-radius:2px;transition:width 0.5s;"></div>
+        </div>
+        <span style="font-size:11px;color:var(--muted);">${g}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Summary removed — info now in relay grid and sensor grid
+}
+
+// ─── DRAWING ─────────────────────────────────────────────────────────────────
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function draw() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const isDark   = document.documentElement.getAttribute('data-theme') === 'dark';
+  const bgColor  = isDark ? '#1C2218' : '#F4EFE6';
+  const dotColor = isDark ? '#2A3520' : '#DDD8CE';
+  const tankBorder = isDark ? '#3A5030' : '#B8C8A0';
+  const textColor  = isDark ? '#6A8A60' : '#8A9070';
+  const labelColor = isDark ? '#8AB56A' : '#606C38';
+
+  // Background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid dots
+  ctx.fillStyle = dotColor;
+  for (let x = 0; x < W; x += 30) for (let y = 0; y < H; y += 30) {
+    ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI*2); ctx.fill();
+  }
+
+  const cx = W / 2;
+
+  // ── CHLOR TANK (left) ──────────────────────────────────────────────────
+  const cTx = cx - 280, cTy = H * 0.45, cTw = 120, cTh = 140;
+  // Tank outline
+  ctx.strokeStyle = tankBorder; ctx.lineWidth = 2;
+  ctx.strokeRect(cTx, cTy, cTw, cTh);
+  // Label
+  ctx.fillStyle = textColor; ctx.font = '500 11px DM Sans, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('KLOR TANKA', cTx + cTw/2, cTy - 24);
+  ctx.font = '400 10px DM Sans, sans-serif';
+  ctx.fillStyle = '#3A6EA8';
+  ctx.fillText(`Klor: ${S.chlorConc.toFixed(1)}%`, cTx + cTw/2, cTy - 10);
+
+  // Water fill
+  const chlorWH = (S.chlorLevel / 100) * (cTh - 10);
+  const grad = ctx.createLinearGradient(cTx, cTy + cTh - chlorWH, cTx, cTy + cTh);
+  grad.addColorStop(0, S.chlorConc > 5 ? '#1a4a6a' : '#1a5a3a');
+  grad.addColorStop(1, S.chlorConc > 5 ? '#0d2a3a' : '#0d3a1a');
+  ctx.fillStyle = grad;
+  ctx.fillRect(cTx + 2, cTy + cTh - chlorWH, cTw - 4, chlorWH);
+
+  // Bubbles (chlor evaporating)
+  S.bubbles.forEach(b => {
+    const bx = cTx + b.x * cTw;
+    const by = cTy + b.y * cTh;
+    if (by > cTy) {
+      ctx.beginPath();
+      ctx.arc(bx, by, b.size, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,229,255,${b.y * 0.6})`;
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+  });
+
+  // Faucet (top of chlor tank)
+  ctx.strokeStyle = '#8A9070'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cTx + cTw/2, cTy - 24);
+  ctx.lineTo(cTx + cTw/2, cTy);
+  ctx.stroke();
+  // Faucet water drops
+  if (Math.random() < 0.1) {
+    ctx.fillStyle = '#2196f3';
+    ctx.beginPath();
+    ctx.arc(cTx + cTw/2, cTy - 5 + Math.random() * 20, 2, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // ── MAIN TANK (center-left) — boyutu S.tankVol'e göre ölçekleniyor ─────
+  // 200L "Orta" ölçek referans alınıyor: daha büyük/küçük tank = daha büyük/küçük kutu
+  const tankScale = clamp(Math.sqrt(S.tankVol / 200), 0.55, 1.55);
+  const mTx = cx - 120, mTy = H * 0.50;
+  const mTw = Math.round(clamp(150 * tankScale, 95, 220));
+  const mTh = Math.round(clamp(150 * tankScale, 95, 220));
+  ctx.strokeStyle = '#2a4a2a'; ctx.lineWidth = 2;
+  ctx.strokeRect(mTx, mTy, mTw, mTh);
+  ctx.fillStyle = textColor; ctx.font = '500 11px DM Sans, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(`ANA BESLEME TANK (${S.tankVol}L)`, mTx + mTw/2, mTy - 28);
+  ctx.font = '400 10px DM Sans, sans-serif'; ctx.fillStyle = '#606C38';
+  ctx.fillText(`pH:${S.ph.toFixed(2)}  EC:${S.ec.toFixed(2)}`, mTx + mTw/2, mTy - 14);
+
+  const mWH = (S.mainLevel / 100) * (mTh - 10);
+  const mGrad = ctx.createLinearGradient(mTx, mTy + mTh - mWH, mTx, mTy + mTh);
+  mGrad.addColorStop(0, '#1a4a6a');
+  mGrad.addColorStop(1, '#0d1f3a');
+  ctx.fillStyle = mGrad;
+  ctx.fillRect(mTx + 2, mTy + mTh - mWH, mTw - 4, mWH);
+
+  // pH line indicator
+  const phY = mTy + mTh - mWH + 4;
+  ctx.strokeStyle = S.ph < 5.8 ? '#ff4444' : S.ph > 6.5 ? '#D4882A' : '#606C38';
+  ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(mTx+2, phY); ctx.lineTo(mTx+mTw-2, phY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Drips (A, B, phdown nutrients falling into main tank)
+  const dripColors = { nutA: '#4caf50', nutB: '#2196f3', phdown: '#E0B870' };
+  const dripX = { nutA: mTx + mTw*0.2, nutB: mTx + mTw*0.5, phdown: mTx + mTw*0.8 };
+  S.drips.forEach(d => {
+    ctx.fillStyle = dripColors[d.type] || '#fff';
+    ctx.globalAlpha = d.life;
+    ctx.beginPath();
+    const dx = dripX[d.type] || mTx + mTw*0.5;
+    const sy = mTy - 40 + d.y;
+    ctx.arc(dx, sy, 3, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+
+  // Pump in main tank
+  const pumpX = mTx + mTw/2, pumpY = mTy + mTh - 20;
+  ctx.fillStyle = S.pumpOn ? '#606C38' : '#2a3d2a';
+  ctx.beginPath(); ctx.arc(pumpX, pumpY, 10, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '400 10px DM Sans, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('P', pumpX, pumpY + 3);
+
+  // ── SÜTUN (COLUMN) DÜZENİ — bitki sayısına göre kaç kule/sütun olacağını hesapla ──
+  // Model kaç bitkiyle eğitildiyse, o kadar bitki burada N sütuna bölünüp gösterilir.
+  const towerStartX = mTx + mTw + 70;      // ana tanktan sonra, boyutu ne olursa olsun çakışma olmaz
+  const towerY = 30, towerH = H - 60;
+  const totalPlants = Math.max(1, S.plants.length);
+  const targetPerCol = 6;                   // bir sütunda okunaklı kalması için hedef bitki sayısı
+  let numCols = Math.max(1, Math.ceil(totalPlants / targetPerCol));
+  numCols = Math.min(numCols, 8);           // canvas genişliği için üst sınır
+  const perCol = Math.ceil(totalPlants / numCols);
+  const columns = [];
+  for (let c = 0; c < numCols; c++) {
+    const slice = [];
+    for (let i = c * perCol; i < Math.min((c + 1) * perCol, totalPlants); i++) slice.push(S.plants[i]);
+    if (slice.length) columns.push(slice);
+  }
+  const availW = Math.max(140, W - towerStartX - 40);
+  const colGap = 18;
+  const towerW = clamp((availW - (columns.length - 1) * colGap) / columns.length, 26, 70);
+  const columnXs = columns.map((_, c) => towerStartX + c * (towerW + colGap));
+  const lastColRightEdge = columnXs.length ? columnXs[columnXs.length - 1] + towerW : towerStartX + towerW;
+
+  // ── PIPE from tank to tower manifold ──────────────────────────────────
+  const pipeX = pumpX + 10;
+  const manifoldY = mTy + mTh/2;
+  ctx.strokeStyle = S.pumpOn ? '#606C38' : '#2a3d2a';
+  ctx.lineWidth = S.pumpOn ? 3 : 2;
+  ctx.beginPath();
+  ctx.moveTo(pipeX, manifoldY);
+  ctx.lineTo(lastColRightEdge - towerW/2, manifoldY);
+  ctx.stroke();
+  columnXs.forEach(cxi => {
+    ctx.beginPath();
+    ctx.moveTo(cxi + towerW/2, manifoldY);
+    ctx.lineTo(cxi + towerW/2, towerY + 10);
+    ctx.stroke();
+  });
+
+  // Animated flow dots along the supply manifold
+  if (S.pumpOn) {
+    const now = Date.now() / 300;
+    for (let i = 0; i < 5; i++) {
+      const t = (now + i * 0.2) % 1;
+      const hx = pipeX + (lastColRightEdge - towerW/2 - pipeX) * t;
+      ctx.fillStyle = `rgba(57,211,83,${0.8 - t * 0.5})`;
+      ctx.beginPath(); ctx.arc(hx, manifoldY, 3, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  // ── SÜTUNLAR / DİKEY KULELER ────────────────────────────────────────────
+  columns.forEach((colPlants, c) => {
+    const towerX = columnXs[c];
+
+    // Tower body
+    const twGrad = ctx.createLinearGradient(towerX, 0, towerX + towerW, 0);
+    twGrad.addColorStop(0, '#1a2d1a');
+    twGrad.addColorStop(0.5, '#223322');
+    twGrad.addColorStop(1, '#1a2d1a');
+    ctx.fillStyle = twGrad;
+    ctx.strokeStyle = '#2a4a2a'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(towerX, towerY, towerW, towerH, 8);
+    ctx.fill(); ctx.stroke();
+
+    // Inner pipe
+    ctx.strokeStyle = '#1a3a1a'; ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(towerX + towerW/2, towerY + 10);
+    ctx.lineTo(towerX + towerW/2, towerY + towerH - 10);
+    ctx.stroke();
+
+    // Water flowing down inside tower
+    if (S.pumpOn) {
+      const wTime = Date.now() / 200;
+      for (let i = 0; i < 6; i++) {
+        const t = ((wTime / 10) + i * 0.16 + c * 0.05) % 1;
+        const wy = towerY + t * towerH;
+        const alpha = 0.6 - Math.abs(t - 0.5) * 0.5;
+        ctx.fillStyle = `rgba(33,150,243,${alpha})`;
+        ctx.beginPath(); ctx.arc(towerX + towerW/2, wy, 3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // ── PLANTS in this column ──────────────────────────────────────────
+    const plantSpacing = (towerH - 40) / (colPlants.length + 1);
+    colPlants.forEach((p, i) => {
+      const py = towerY + 30 + i * plantSpacing;
+      const side = i % 2 === 0 ? -1 : 1; // alternate sides
+      const pBaseX = towerX + (side === -1 ? 2 : towerW - 2);
+
+      // Net pot hole
+      ctx.fillStyle = '#0d1a0d';
+      ctx.beginPath(); ctx.arc(pBaseX, py, 5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#3a5a3a'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(pBaseX, py, 5, 0, Math.PI*2); ctx.stroke();
+
+      // Root
+      const rootLen = (p.root / 100) * 28;
+      if (rootLen > 2) {
+        ctx.strokeStyle = `rgba(200,230,200,${p.health * 0.6})`;
+        ctx.lineWidth = 0.8;
+        for (let r = 0; r < 3; r++) {
+          ctx.beginPath();
+          const angle = (Math.PI * 0.3) + r * 0.3;
+          ctx.moveTo(pBaseX, py + 5);
+          ctx.lineTo(pBaseX + Math.cos(angle) * rootLen * side, py + 5 + Math.sin(angle) * rootLen * 0.7);
+          ctx.stroke();
+        }
+      }
+
+      // Stem
+      const stemLen = (p.leaf / 100) * 22;
+      if (stemLen > 1) {
+        ctx.strokeStyle = p.health > 0.5 ? '#4a8a4a' : '#6a6a2a';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(pBaseX, py);
+        ctx.lineTo(pBaseX + side * (4 + stemLen * 0.3), py - stemLen * 0.6);
+        ctx.stroke();
+      }
+
+      // Leaves
+      const leafSize = (p.leaf / 100) * 18;
+      if (leafSize > 1) {
+        const hue = p.health > 0.7 ? 120 : p.health > 0.4 ? 70 : 45;
+        const sat = p.health > 0.7 ? 60 : 40;
+        const lum = p.health > 0.7 ? 35 : 45;
+        ctx.fillStyle = `hsl(${hue},${sat}%,${lum}%)`;
+        const lx = pBaseX + side * (8 + stemLen * 0.3);
+        const ly = py - stemLen * 0.6;
+        for (let l = 0; l < 3; l++) {
+          const angle = -Math.PI/2 + (l-1) * 0.7;
+          ctx.beginPath();
+          ctx.ellipse(lx + Math.cos(angle)*leafSize*0.6, ly + Math.sin(angle)*leafSize*0.5,
+            leafSize * 0.8, leafSize * 0.4, angle, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    });
+
+    // Per-column plant count (only shown once there's more than one column, to stay uncluttered)
+    if (columns.length > 1) {
+      ctx.fillStyle = textColor; ctx.font = '400 9px DM Sans, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${colPlants.length}`, towerX + towerW/2, towerY + towerH + 14);
+    }
+  });
+
+  // Return pipe(s) from each column bottom back to main tank
+  const returnManifoldY = towerY + towerH + (columns.length > 1 ? 24 : 15);
+  ctx.strokeStyle = S.pumpOn ? '#1a6aaa' : '#1a3a2a';
+  ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  columnXs.forEach(cxi => {
+    ctx.beginPath();
+    ctx.moveTo(cxi + towerW/2, towerY + towerH - 5);
+    ctx.lineTo(cxi + towerW/2, returnManifoldY);
+    ctx.stroke();
+  });
+  ctx.beginPath();
+  ctx.moveTo(columnXs[0] + towerW/2, returnManifoldY);
+  ctx.lineTo(lastColRightEdge - towerW/2, returnManifoldY);
+  ctx.lineTo(mTx + mTw - 10, mTy + 10);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Return label
+  ctx.fillStyle = '#2a4a3a'; ctx.font = '400 10px DM Sans, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('← geri dönüş', towerStartX + (lastColRightEdge - towerStartX)/2, returnManifoldY + 14);
+
+  // ── LABELS ────────────────────────────────────────────────────────────
+  ctx.textAlign = 'center'; ctx.fillStyle = '#8A9070'; ctx.font = '700 13px DM Sans, sans-serif';
+  const towerAreaCenterX = towerStartX + (lastColRightEdge - towerStartX) / 2;
+  const towerLabel = columns.length > 1
+    ? `DİKEY NFT KULELER — ${columns.length} Sütun × ${totalPlants} Bitki`
+    : 'DİKEY NFT KULE';
+  ctx.fillText(towerLabel, towerAreaCenterX, towerY - 8);
+
+  // LED bar indicator (spans the whole column area)
+  if (S.ledOn) {
+    ctx.fillStyle = `rgba(255,200,50,${0.15 + 0.05 * Math.sin(Date.now()/500)})`;
+    ctx.fillRect(towerStartX - 10, towerY, (lastColRightEdge - towerStartX) + 20, 8);
+    ctx.fillStyle = '#D4882A'; ctx.font = '400 10px DM Sans, sans-serif';
+    ctx.fillText('▬▬ GROW LED ▬▬', towerAreaCenterX, towerY + 6);
+  }
+
+  // Valve pipe chlor→main
+  if (S.valveOn) {
+    ctx.strokeStyle = '#3A6EA8'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cTx + cTw, cTy + cTh * 0.7);
+    ctx.lineTo(mTx, mTy + mTh * 0.7);
+    ctx.stroke();
+    // flow dots
+    const vt = (Date.now() / 300) % 1;
+    ctx.fillStyle = '#3A6EA8';
+    ctx.beginPath();
+    const vx = cTx + cTw + vt * (mTx - cTx - cTw);
+    ctx.arc(vx, cTy + cTh * 0.7, 3, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  requestAnimationFrame(draw);
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function getToken(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function updateChartTheme() {
+  const gc = getToken('--border');
+  const tc = getToken('--muted');
+  const all = [trainPhChart, trainEcChart, errorChart, sensitivityChart, liveTestChart];
+  all.forEach(c => {
+    if (!c) return;
+    if (c.options.scales) Object.values(c.options.scales).forEach(ax => {
+      if (ax.ticks)  ax.ticks.color  = tc;
+      if (ax.grid)   ax.grid.color   = gc;
+      if (ax.title)  ax.title.color  = tc;
+    });
+    if (c.options.plugins?.legend?.labels) c.options.plugins.legend.labels.color = tc;
+    c.update('none');
+  });
+}
+
+function toggleTheme() {
+  const html  = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  localStorage.setItem('farmgo-theme', isDark ? 'light' : 'dark');
+  updateThemeIcons();
+  setTimeout(updateChartTheme, 50);
+}
+
+function updateThemeIcons() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const sunIcon  = document.getElementById('icon-sun');
+  const moonIcon = document.getElementById('icon-moon');
+  if (sunIcon)  sunIcon.style.display  = isDark ? 'none'  : 'block';
+  if (moonIcon) moonIcon.style.display = isDark ? 'block' : 'none';
+}
+
+// Load saved theme
+(function() {
+  const saved = localStorage.getItem('farmgo-theme');
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  setTimeout(updateThemeIcons, 0);
+})();
+
+// ─── VIEW / PHASE SWITCHING ───────────────────────────────────────────────────
+function switchView(v) {
+  document.getElementById('view-live').classList.toggle('active', v === 'live');
+  document.getElementById('view-learn').classList.toggle('active', v === 'learn');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if ((v === 'live' && b.textContent.includes('CANLI')) ||
+        (v === 'learn' && b.textContent.includes('ÖĞRENME'))) b.classList.add('active');
+  });
+  if (v === 'learn') initLearnCharts();
+}
+
+function setPhase(p) {
+  ['train','infer','livetest','dataview'].forEach(id => {
+    const el = document.getElementById('phase-' + id);
+    if (el) el.style.display = 'none';
+  });
+  const target = document.getElementById('phase-' + p);
+  if (target) target.style.display = 'grid';
+  document.querySelectorAll('.phase-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll(`[data-phase="${p}"]`).forEach(b => b.classList.add('active'));
+  if (p === 'infer') { liveInference(); buildSensitivityChart(); }
+  if (p === 'livetest') initLiveTest();
+  if (p === 'dataview') renderDataTable();
+}
+
+// ─── CHART INSTANCES ──────────────────────────────────────────────────────────
+let trainPhChart = null, trainEcChart = null, errorChart = null, sensitivityChart = null, liveTestChart = null;
+let chartsReady = false;
+
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: true,
+  plugins: { legend: { labels: { color: '#606C38', font: { family: 'DM Sans', size: 10 } } } },
+  scales: {
+    x: { ticks: { color: '#8A9070', maxTicksLimit: 10, font: { size: 9 } }, grid: { color: 'var(--border)' } },
+    y: { ticks: { color: '#8A9070', font: { size: 9 } }, grid: { color: 'var(--border)' } }
+  }
+};
+
+function makeChart(id, datasets, yLabel, extra = {}) {
+  return new Chart(document.getElementById(id), {
+    type: 'line',
+    data: { labels: [], datasets },
+    options: { ...chartDefaults, ...extra, scales: {
+      ...chartDefaults.scales,
+      y: { ...chartDefaults.scales.y, title: { display: true, text: yLabel, color: '#8A9070', font: { size: 9 } } }
+    }}
+  });
+}
+
+function makeChart(id, datasets, yLabel, extra = {}) {
+  const gc = getToken('--border');
+  const tc = getToken('--muted');
+  try {
+    return new Chart(document.getElementById(id), {
+      type: 'line',
+      data: { labels: [], datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 400, easing: 'easeOutQuart' },
+        plugins: { legend: { labels: { color: tc, font: { family: 'DM Sans', size: 11 }, boxWidth: 22, padding: 14 } } },
+        scales: {
+          x: { ticks: { color: tc, font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: gc } },
+          y: { ticks: { color: tc, font: { size: 10 } }, grid: { color: gc },
+               title: { display: !!yLabel, text: yLabel, color: tc, font: { size: 11 } } }
+        },
+        ...extra
+      }
+    });
+  } catch (e) {
+    console.warn('Chart.js kullanılamıyor — grafik devre dışı:', e);
+    return { data: { labels: [], datasets }, update: () => {} };
+  }
+}
+
+function initLearnCharts() {
+  if (chartsReady) return;
+  chartsReady = true;
+
+  trainPhChart = makeChart('trainPhChart', [
+    { label: 'Gerçek pH (prob)', borderColor: '#606C38', borderWidth: 2, pointRadius: 0, tension: 0.35, data: [] },
+    { label: 'Sanal Sensör Tahmini', borderColor: '#A3B18A', borderWidth: 1.5, pointRadius: 0, tension: 0.35, borderDash: [5,3], data: [] }
+  ], 'pH');
+
+  trainEcChart = makeChart('trainEcChart', [
+    { label: 'Gerçek EC (prob)', borderColor: '#D4882A', borderWidth: 2, pointRadius: 0, tension: 0.35, data: [] },
+    { label: 'Sanal Sensör Tahmini', borderColor: '#E0B870', borderWidth: 1.5, pointRadius: 0, tension: 0.35, borderDash: [5,3], data: [] }
+  ], 'EC (mS/cm)');
+
+  errorChart = makeChart('errorChart', [
+    { label: 'Hata Oranı — pH', borderColor: '#C0392B', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true, backgroundColor: 'rgba(192,57,43,0.08)', data: [] },
+    { label: 'Hata Oranı — EC', borderColor: '#D4882A', borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true, backgroundColor: 'rgba(212,136,42,0.05)', data: [] }
+  ], 'Hata (RMSE)');
+}
+
+// ─── FEATURE NORMALIZATION ────────────────────────────────────────────────────
+// All inputs normalized to ~[0,1] range so gradients are on the same scale
+// This prevents large-range features (level: 0-100) from dominating small ones (temp: ±15)
+const NORM = {
+  temp:  v => (v - 20) / 10,         // 10–34°C → ~[-1, +1.4]
+  level: v => (100 - v) / 100,       // 0–100% → [0, 1] (inverted: high level = low value)
+  flow:  v => v / 15,                // 0–30 L/dk → [0, 2]
+  sat:   (t_h, tau) => 1 - Math.exp(-t_h / (24 * tau))
+};
+
+// ─── STATE-BASED PHYSICS MODEL ────────────────────────────────────────────────
+// Each value evolves from previous state — causally connected, not independent per tick
+// Returns { ph, ec } — these are DELTA applied to running state in the training loop
+
+function initPhysicsState() {
+  return {
+    ph: 6.4 + (Math.random() - 0.5) * 0.3,   // starting pH
+    ec: 1.1 + (Math.random() - 0.5) * 0.2,   // starting EC
+  };
+}
+
+function simPhysicsStep(state, wtemp, level, prevLevel, flow, plants, vol, t_hours, freqMin) {
+  const dt = freqMin / 60;           // hours per tick
+  const dayOfYear = (t_hours / 24) % 365;
+  const hourOfDay = t_hours % 24;
+
+  // ── SEASONAL CONTEXT ────────────────────────────────────────────────────────
+  // Summer: higher temps, faster evap, more photosynthesis → pH rises faster
+  // Winter: cooler water, slower uptake, different buffering
+  const seasonalTemp = Math.sin((dayOfYear - 80) / 365 * 2 * Math.PI); // peaks in summer
+  const isSummer = seasonalTemp > 0.3;
+  const isWinter = seasonalTemp < -0.3;
+
+  // ── pH DYNAMICS ─────────────────────────────────────────────────────────────
+  // pH changes slowly — driven by biological activity, not instant
+  // Photosynthesis (daytime) consumes CO2 → pH rises
+  // Respiration (nighttime) produces CO2 → pH falls
+  // Root exudates from plants → slow upward drift
+  // Temperature: hot water holds less CO2 → pH rises
+  const daytimePhoto  = Math.max(0, Math.sin((hourOfDay - 6) / 12 * Math.PI)) * 0.008 * dt;
+  const nightResp     = Math.max(0, -Math.sin((hourOfDay - 6) / 12 * Math.PI)) * 0.005 * dt;
+  const rootExudate   = (plants / 20) * 0.002 * dt;
+  const tempBuffering = (wtemp - 20) * 0.001 * dt;
+  // Concentration effect: as level drops, buffering capacity drops → pH more volatile
+  const bufferCap     = level / 100;  // 1.0 at full, 0.1 at 10%
+  // Seasonal: summer → algae bloom → pH rises faster
+  const seasonalPH    = isSummer ? 0.001 * dt : isWinter ? -0.0005 * dt : 0;
+  // Target: natural drift toward 6.8-7.2 range (plant biology optimum)
+  const targetPH      = 6.9 + seasonalTemp * 0.15;
+  const meanReversion = (targetPH - state.ph) * 0.003 * dt / bufferCap;
+  // Small correlated noise (measurement + micro-biological)
+  const noisePH = (Math.random() - 0.5) * 0.03 * (1 / bufferCap) * dt * 12;
+
+  const dph = daytimePhoto - nightResp + rootExudate + tempBuffering + seasonalPH + meanReversion + noisePH;
+  const new_ph = Math.min(7.6, Math.max(5.5, state.ph + dph));
+
+  // ── EC DYNAMICS ─────────────────────────────────────────────────────────────
+  // EC changes when water level changes (concentration/dilution effect)
+  // It does NOT slowly drift up over weeks — it responds to level changes TODAY
+  const levelDrop   = Math.max(0, prevLevel - level);      // how much evaporated this tick
+  const levelFill   = Math.max(0, level - prevLevel);      // how much was refilled
+
+  // Evaporation concentrates salts → EC up proportional to how much water was lost
+  const evapConc    = levelDrop / 100 * state.ec * 1.8;    // concentrate existing EC
+  // Refill dilutes → EC drops sharply (fresh water has low EC)
+  const fillDilute  = levelFill / 100 * state.ec * 1.4;
+  // Plant ion uptake → slow EC reduction (plants consume nutrients)
+  const ionUptake   = (plants / 30) * 0.003 * dt;
+  // Temperature: ion mobility (small effect, affects measurement not actual EC)
+  const tempEC      = (wtemp - 20) * 0.0008 * dt;
+  // Seasonal: summer evaporation stronger
+  const seasonalEC  = isSummer ? levelDrop * 0.003 : 0;
+  // Vol buffering: large tanks resist EC swings
+  const volFactor   = Math.max(0.3, 1 - Math.log10(Math.max(10, vol)) * 0.15);
+  const noiseEC     = (Math.random() - 0.5) * 0.015 * dt * 12;
+
+  const dec = (evapConc - fillDilute - ionUptake + tempEC + seasonalEC) * volFactor + noiseEC;
+  const new_ec = Math.min(2.8, Math.max(0.6, state.ec + dec));
+
+  return { ph: new_ph, ec: new_ec };
+}
+
+function virtualSensor(wtemp, level, flow, plants, vol, t_hours, model) {
+  const {
+    k_temp, k_level, k_uptake, k_flow,
+    k_diurnal, k_seasonal,
+    k_ec_evap, k_ec_uptake, k_ec_temp,
+    bias_ph, bias_ec
+  } = model;
+  if (!isFinite(bias_ph) || !isFinite(k_temp) || !isFinite(bias_ec)) {
+    return { pred_ph: 6.8, pred_ec: 1.1 };
+  }
+  const nT    = NORM.temp(wtemp);
+  const nL    = NORM.level(level);
+  const nF    = NORM.flow(flow);
+  const sat   = NORM.sat(t_hours, 12);
+  const sqrtP = Math.sqrt(Math.max(0, plants));
+
+  // Diurnal cycle feature: model can learn day/night pH swing
+  const hourOfDay  = t_hours % 24;
+  const diurnal    = Math.sin((hourOfDay - 6) / 12 * Math.PI); // +1 at noon, -1 at midnight
+
+  // Seasonal feature: model can learn summer/winter EC/pH differences
+  const dayOfYear  = (t_hours / 24) % 365;
+  const seasonal   = Math.sin((dayOfYear - 80) / 365 * 2 * Math.PI); // +1 in summer
+
+  const pred_ph_raw = bias_ph
+    + k_temp     * nT
+    + k_level    * nL
+    + k_uptake   * sqrtP * sat
+    + k_flow     * nF
+    + (k_diurnal  ?? 0) * diurnal
+    + (k_seasonal ?? 0) * seasonal;
+
+  const pred_ec_raw = bias_ec
+    + k_ec_evap   * nL
+    + k_ec_uptake * sqrtP * sat
+    + k_ec_temp   * nT
+    + (k_seasonal ?? 0) * seasonal * 0.3; // seasonal also affects EC concentration
+
+  return {
+    pred_ph: isFinite(pred_ph_raw) ? pred_ph_raw : 6.8,
+    pred_ec: isFinite(pred_ec_raw) ? pred_ec_raw : 1.1
+  };
+}
+
+// For display only — clamp to realistic hydroponic range
+function clampPh(v)  { return Math.min(7.8, Math.max(5.2, v)); }
+function clampEc(v)  { return Math.min(3.5, Math.max(0.5, v)); }
+
+// Start closer to truth — model will refine, not fight wrong signs from scratch
+function freshModel() {
+  return {
+    bias_ph:    6.85,   // slightly above true mean (7.0) — will converge down
+    k_temp:    -0.12,   // true ~-0.22 → understated, will grow
+    k_level:   -0.04,   // true ~-0.04 → already close
+    k_uptake:   0.04,   // true ~0.15 → understated
+    k_flow:     0.0,
+    k_diurnal:  0.01,   // true ~0.008*dt*12 → seed value, will converge
+    k_seasonal: 0.02,   // true ~0.15 seasonal swing → will grow
+    bias_ec:    1.10,   // close to true mean
+    k_ec_evap:  0.50,   // true ~0.90 → understated
+    k_ec_uptake:-0.03,  // true ~-0.10 → understated
+    k_ec_temp:  0.08    // true ~0.12 → understated
+  };
+}
+
+function calcRMSE(pairs) {
+  if (!pairs.length) return 0;
+  return Math.sqrt(pairs.reduce((s, [r, p]) => s + (r - p) ** 2, 0) / pairs.length);
+}
+
+function calibrateStep(model, batch, lr) {
+  const g = Object.fromEntries(Object.keys(model).map(k => [k, 0]));
+  let count = 0;
+  batch.forEach(({ wtemp, level, flow, plants, vol, t_hours, real_ph, real_ec }) => {
+    if (!isFinite(wtemp) || !isFinite(level) || !isFinite(real_ph) || !isFinite(real_ec)) return;
+    const p = virtualSensor(wtemp, level, flow, plants, vol, t_hours, model);
+    const eph = p.pred_ph - real_ph;
+    const eec = p.pred_ec - real_ec;
+    if (!isFinite(eph) || !isFinite(eec)) return;
+    const nT     = NORM.temp(wtemp);
+    const nL     = NORM.level(level);
+    const nF     = NORM.flow(flow);
+    const sat    = NORM.sat(t_hours, 12);
+    const sqrtP  = Math.sqrt(Math.max(0, plants));
+    const hourOfDay = t_hours % 24;
+    const dayOfYear = (t_hours / 24) % 365;
+    const diurnal   = Math.sin((hourOfDay - 6) / 12 * Math.PI);
+    const seasonal  = Math.sin((dayOfYear - 80) / 365 * 2 * Math.PI);
+
+    g.bias_ph     += eph;
+    g.k_temp      += eph * nT;
+    g.k_level     += eph * nL;
+    g.k_uptake    += eph * sqrtP * sat;
+    g.k_flow      += eph * nF;
+    g.k_diurnal   += eph * diurnal;
+    g.k_seasonal  += eph * seasonal + eec * seasonal * 0.3;
+    g.bias_ec     += eec;
+    g.k_ec_evap   += eec * nL;
+    g.k_ec_uptake += eec * sqrtP * sat;
+    g.k_ec_temp   += eec * nT;
+    count++;
+  });
+  if (!count) return model;
+  const updated = {};
+  for (const k in model) {
+    const step = lr * ((g[k] ?? 0) / count);
+    updated[k] = isFinite(step) ? model[k] - step : model[k];
+  }
+  return updated;
+}
+
+// Confidence: based on how close input params are to training distribution
+// If training was done with these exact params, confidence is high
+// If params are very different (extrapolation), confidence drops
+function calcConfidence(model, params, trainingStats) {
+  if (!trainingStats) return 55; // no training done yet
+  const { wtemp, level, flow, plants, vol } = params;
+  const { wtempMean, wtempStd, levelMean, levelStd } = trainingStats;
+  // Z-scores: how many std deviations from training distribution
+  const zTemp  = Math.abs((wtemp - wtempMean) / (wtempStd || 1));
+  const zLevel = Math.abs((level - levelMean) / (levelStd || 1));
+  // Confidence decreases as we move away from training distribution
+  const base = 97 - zTemp * 9 - zLevel * 7;
+  return Math.min(97, Math.max(38, base));
+}
+
+// ─── TRAINING ENGINE ──────────────────────────────────────────────────────────
+let trainedModel = null;
+let trainingStats = null;
+let allRecords = [];
+let rmseHistory = [];
+let playbackTimer = null;
+let playbackIdx = 0;
+let playbackSpeed = 10;
+let isPlaying = false;
+
+async function runTrainingGeneration(appendMode = false) {
+  const vol    = parseFloat(document.getElementById('p-vol').value);
+  const flow   = parseFloat(document.getElementById('p-flow').value);
+  const plants = parseInt(document.getElementById('p-plants').value);
+  const freqMin= parseInt(document.getElementById('p-freq').value);
+  // In append mode, use the append-specific day/record input
+  const days = appendMode
+    ? Math.max(1, parseFloat(document.getElementById('append-days').value) || 30)
+    : parseInt(document.getElementById('p-days').value);
+
+  document.getElementById('btn-generate').disabled = true;
+  document.getElementById('btn-append').disabled = true;
+  document.getElementById('train-progress').style.width = '0%';
+
+  let model, batchNumStart, tOffset;
+
+  if (appendMode && trainedModel) {
+    // APPEND: keep model weights, add new data on top
+    model = { ...trainedModel };
+    batchNumStart = rmseHistory.length;
+    tOffset = allRecords.length * freqMin; // continue time from where we left off
+    document.getElementById('db-status-text').textContent = `Mevcut ${allRecords.length.toLocaleString()} kayıt üzerine ekleniyor...`;
+    trainLog(`── APPEND ── Mevcut model korunuyor, ${days} gün yeni veri ekleniyor`, 'ok');
+    trainLog(`Başlangıç RMSE: pH ${rmseHistory.at(-1)?.rmse_ph?.toFixed(4) ?? '—'} | EC ${rmseHistory.at(-1)?.rmse_ec?.toFixed(4) ?? '—'}`, 'info');
+  } else {
+    // FRESH: reset everything
+    model = freshModel();
+    batchNumStart = 0;
+    tOffset = 0;
+    allRecords = [];
+    rmseHistory = [];
+    await db.olcumler.clear();
+    await db.model_state.clear();
+    [trainPhChart, trainEcChart, errorChart].forEach(c => {
+      if (!c) return;
+      c.data.labels = [];
+      c.data.datasets.forEach(d => d.data = []);
+      c.update('none');
+    });
+    document.getElementById('db-status-text').textContent = 'Veri üretiliyor...';
+    trainLog(`── YENİ ── ${vol}L tank | ${flow}L/dk debi | ${plants} bitki | ${days} gün`, 'info');
+  }
+
+  const existingCount = allRecords.length;
+  const totalTicks = Math.floor((days * 24 * 60) / freqMin);
+  const BATCH = Math.max(50, Math.min(200, Math.floor(totalTicks / 80)));
+  let batchBuffer = [];
+  let batchNum = batchNumStart;
+
+  // Operator personality — different each run (even append), simulates new dataset
+  const opRefillThresh = 15 + Math.random() * 30;
+  const opRefillTo     = 70 + Math.random() * 28;
+  const opAttentive    = 0.3 + Math.random() * 0.7;
+  const opWeeklyTopup  = Math.random() > 0.5;
+  const opTopupDay     = Math.floor(Math.random() * 7);
+  let currentLevel     = 90 + Math.random() * 8;
+  let prevLevel        = currentLevel;
+
+  // State-based physics: pH and EC carry over from previous tick
+  const physState = initPhysicsState();
+
+  let wtempSum = 0, wtempSqSum = 0, levelSum = 0, levelSqSum = 0;
+
+  for (let tick = 0; tick < totalTicks; tick++) {
+    const t_hours   = (tOffset + tick * freqMin) / 60;
+    const dayOfSim  = Math.floor(t_hours / 24);
+    const hourOfDay = t_hours % 24;
+
+    // Seasonal temperature: day/night + weekly + seasonal (year-long sine)
+    const dayOfYear     = (t_hours / 24) % 365;
+    const seasonalCycle = 6 * Math.sin((dayOfYear - 80) / 365 * 2 * Math.PI); // ±6°C summer/winter
+    const dayNightCycle = 3.5 * Math.sin((hourOfDay - 6) / 24 * 2 * Math.PI);
+    const wtemp = Math.max(8, Math.min(36,
+      20 + seasonalCycle + dayNightCycle + (Math.random() - 0.5) * 0.3
+    ));
+
+    // Water level evolution
+    const evapRate   = (0.05 + (wtemp - 18) * 0.006) * (freqMin / 60); // hotter = faster evap
+    const uptakeRate = (plants / 25) * 0.022 * (freqMin / 60);
+    prevLevel = currentLevel;
+    currentLevel -= evapRate + uptakeRate + (Math.random() - 0.5) * 0.02;
+    const thresh = opRefillThresh * (1 - opAttentive * 0.3 + Math.random() * 0.4);
+    if (currentLevel < thresh) currentLevel = opRefillTo * (0.85 + Math.random() * 0.15);
+    if (opWeeklyTopup && dayOfSim % 7 === opTopupDay && hourOfDay < freqMin / 60)
+      if (currentLevel < 85) currentLevel = Math.min(100, currentLevel + 12 + Math.random() * 8);
+    const level = Math.max(8, Math.min(100, currentLevel));
+
+    wtempSum += wtemp; wtempSqSum += wtemp ** 2;
+    levelSum += level; levelSqSum += level ** 2;
+
+    // State-based physics step — causally connected to prevLevel, wtemp, plants
+    const newState = simPhysicsStep(physState, wtemp, level, prevLevel, flow, plants, vol, t_hours, freqMin);
+    physState.ph = newState.ph;
+    physState.ec = newState.ec;
+
+    const real_ph = physState.ph;
+    const real_ec = physState.ec;
+    const vs = virtualSensor(wtemp, level, flow, plants, vol, t_hours, model);
+
+    const record = {
+      timestamp: Date.now() + tick * freqMin * 60000,
+      tick: existingCount + tick, dayOfSim, hourOfDay: +hourOfDay.toFixed(1),
+      real_ph: +real_ph.toFixed(3), real_ec: +real_ec.toFixed(3),
+      pred_ph: +clampPh(vs.pred_ph).toFixed(3),
+      pred_ec: +clampEc(vs.pred_ec).toFixed(3),
+      wtemp: +wtemp.toFixed(2), level: +level.toFixed(1),
+      flow, plants, vol, t_hours: +t_hours.toFixed(2)
+    };
+    batchBuffer.push(record);
+    allRecords.push(record);
+
+    if (batchBuffer.length >= BATCH) {
+      const lrBase = 0.025 / (1 + batchNum * 0.03);
+      model = calibrateStep(model, batchBuffer, lrBase);
+      model = calibrateStep(model, batchBuffer, lrBase * 0.5);
+      model = calibrateStep(model, batchBuffer, lrBase * 0.25);
+      batchNum++;
+
+      const updatedBatch = batchBuffer.map(r => {
+        const vs2 = virtualSensor(r.wtemp, r.level, r.flow, r.plants, r.vol, r.t_hours, model);
+        return { ...r, pred_ph: +clampPh(vs2.pred_ph).toFixed(3), pred_ec: +clampEc(vs2.pred_ec).toFixed(3) };
+      });
+
+      const rmse_ph = calcRMSE(updatedBatch.map(r => [r.real_ph, r.pred_ph]));
+      const rmse_ec = calcRMSE(updatedBatch.map(r => [r.real_ec, r.pred_ec]));
+      rmseHistory.push({ epoch: batchNum, rmse_ph: +rmse_ph.toFixed(4), rmse_ec: +rmse_ec.toFixed(4) });
+
+      const batchStart = allRecords.length - batchBuffer.length;
+      updatedBatch.forEach((r, i) => { allRecords[batchStart + i] = r; });
+      await db.olcumler.bulkAdd(updatedBatch);
+      await db.model_state.add({ epoch: batchNum, ...model, rmse_ph, rmse_ec, timestamp: Date.now() });
+      batchBuffer = [];
+
+      const total = existingCount + tick + 1;
+      const accPH = Math.max(0, Math.min(100, (1 - rmse_ph / 1.9) * 100));
+      document.getElementById('m-rmse').textContent = rmse_ph.toFixed(3);
+      document.getElementById('m-epochs').textContent = batchNum;
+      document.getElementById('m-records').textContent = total.toLocaleString();
+      document.getElementById('m-accuracy').textContent = accPH.toFixed(1) + '%';
+      document.getElementById('train-progress').style.width = ((tick + 1) / totalTicks * 100).toFixed(1) + '%';
+
+      const s = v => parseFloat(v) >= 0 ? '+' : '';
+      const rKT  = (model.k_temp / 10).toFixed(4);
+      const rKL  = (model.k_level / 100).toFixed(5);
+      const rKU  = model.k_uptake.toFixed(4);
+      const rKD  = (model.k_diurnal ?? 0).toFixed(4);
+      const rKS  = (model.k_seasonal ?? 0).toFixed(4);
+      const rKET = (model.k_ec_temp / 10).toFixed(4);
+      const rKEE = (model.k_ec_evap / 100).toFixed(4);
+      const rKEU = model.k_ec_uptake.toFixed(4);
+      document.getElementById('formula-display').innerHTML =
+        `pH = <span class="const">${model.bias_ph.toFixed(3)}</span>` +
+        ` <span class="op">${s(rKT)}</span><span class="var">${rKT}</span>·(T−20)` +
+        ` <span class="op">${s(rKL)}</span><span class="var">${rKL}</span>·(100−seviye)` +
+        ` <span class="op">${s(rKU)}</span><span class="var">${rKU}</span>·√bitki·doy<br>` +
+        ` <span class="op">${s(rKD)}</span><span class="var">${rKD}</span>·sin(gündüz)` +
+        ` <span class="op">${s(rKS)}</span><span class="var">${rKS}</span>·sin(mevsim)<br>` +
+        `EC = <span class="const">${model.bias_ec.toFixed(3)}</span>` +
+        ` <span class="op">${s(rKEE)}</span><span class="var">${rKEE}</span>·(100−seviye)` +
+        ` <span class="op">${s(rKEU)}</span><span class="var">${rKEU}</span>·√bitki·doy` +
+        ` <span class="op">${s(rKET)}</span><span class="var">${rKET}</span>·(T−20)<br>` +
+        `<span style="color:var(--muted)">Epok ${batchNum} | ${total.toLocaleString()} kayıt | RMSE pH:${rmse_ph.toFixed(4)}</span>`;
+
+      if (batchNum % 4 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  if (batchBuffer.length) await db.olcumler.bulkAdd(batchBuffer);
+
+  trainedModel = model;
+  liveTwinConfig = { vol, flow, plants };
+  applyLiveTwinConfig();
+
+  const n = allRecords.length;
+  const wtempMean = wtempSum / totalTicks;
+  const levelMean = levelSum / totalTicks;
+  trainingStats = {
+    wtempMean, wtempStd: Math.sqrt(Math.max(0, wtempSqSum / totalTicks - wtempMean ** 2)),
+    levelMean, levelStd: Math.sqrt(Math.max(0, levelSqSum / totalTicks - levelMean ** 2)),
+    days, records: n, epochs: batchNum
+  };
+
+  const lastRmse = rmseHistory.at(-1);
+  trainLog(`Tamamlandı — ${n.toLocaleString()} kayıt | ${batchNum} epok | RMSE pH:${lastRmse?.rmse_ph} EC:${lastRmse?.rmse_ec}`, 'ok');
+  if (appendMode) trainLog(`Toplam veri: ${n.toLocaleString()} — model güncellendi`, 'ok');
+  document.getElementById('db-status-text').textContent = `✓ ${n.toLocaleString()} kayıt IndexedDB'de`;
+  document.getElementById('btn-generate').disabled = false;
+  document.getElementById('btn-append').disabled = false;
+  document.getElementById('btn-append').disabled = false;
+
+  document.getElementById('model-source-text').innerHTML =
+    `<b style="color:var(--green)">${appendMode ? 'Model güncellendi' : 'Kalibre model yüklü'}</b> — ${n.toLocaleString()} ölçüm | ${batchNum} epok<br>
+    T <span style="color:var(--cyan)">${wtempMean.toFixed(1)}±${trainingStats.wtempStd.toFixed(1)}</span>°C &nbsp;
+    Seviye <span style="color:var(--cyan)">${levelMean.toFixed(0)}±${trainingStats.levelStd.toFixed(0)}</span>%`;
+
+  buildTrainCharts();
+  setupPlayback(n);
+  saveToSlot(activeSlot);
+}
+
+function buildTrainCharts() {
+  const step = Math.max(1, Math.floor(allRecords.length / 400));
+  const sampled = allRecords.filter((_, i) => i % step === 0);
+  const labels = sampled.map(r => `G${r.dayOfSim + 1}`);
+
+  trainPhChart.data.labels = labels;
+  trainPhChart.data.datasets[0].data = sampled.map(r => r.real_ph);
+  trainPhChart.data.datasets[1].data = sampled.map(r => r.pred_ph);
+  trainPhChart.update('none');
+
+  trainEcChart.data.labels = labels;
+  trainEcChart.data.datasets[0].data = sampled.map(r => r.real_ec);
+  trainEcChart.data.datasets[1].data = sampled.map(r => r.pred_ec);
+  trainEcChart.update('none');
+
+  // RMSE: show smoothed moving average (window=10) so "learning" trend is visible
+  // Raw batch RMSE is noisy because each batch has different data distribution
+  const window = Math.max(5, Math.floor(rmseHistory.length / 30));
+  const smoothed_ph = rmseHistory.map((_, i) => {
+    const slice = rmseHistory.slice(Math.max(0, i - window), i + 1);
+    return +(slice.reduce((s, r) => s + r.rmse_ph, 0) / slice.length).toFixed(4);
+  });
+  const smoothed_ec = rmseHistory.map((_, i) => {
+    const slice = rmseHistory.slice(Math.max(0, i - window), i + 1);
+    return +(slice.reduce((s, r) => s + r.rmse_ec, 0) / slice.length).toFixed(4);
+  });
+  errorChart.data.labels = rmseHistory.map(r => `E${r.epoch}`);
+  errorChart.data.datasets[0].data = smoothed_ph;
+  errorChart.data.datasets[1].data = smoothed_ec;
+  errorChart.update('none');
+}
+
+// ─── PLAYBACK ─────────────────────────────────────────────────────────────────
+function setupPlayback(total) {
+  const s = document.getElementById('scrubber');
+  s.max = total - 1; s.value = 0;
+  playbackIdx = 0;
+  document.getElementById('playback-info').textContent = `0 / ${total.toLocaleString()} kayıt`;
+}
+
+function togglePlayback() {
+  isPlaying = !isPlaying;
+  document.getElementById('play-btn').textContent = isPlaying ? '⏸' : '▶';
+  if (isPlaying) runPlayback();
+  else { clearInterval(playbackTimer); playbackTimer = null; }
+}
+
+function runPlayback() {
+  if (playbackTimer) clearInterval(playbackTimer);
+  const step = Math.max(1, Math.floor(allRecords.length / 400));
+  playbackTimer = setInterval(() => {
+    if (!isPlaying || !allRecords.length) return;
+    playbackIdx = Math.min(allRecords.length - 1, playbackIdx + playbackSpeed);
+    document.getElementById('scrubber').value = playbackIdx;
+    document.getElementById('playback-info').textContent =
+      `${playbackIdx.toLocaleString()} / ${allRecords.length.toLocaleString()} kayıt — Gün ${allRecords[playbackIdx]?.dayOfSim + 1 || '?'}`;
+    const visCount = Math.floor(playbackIdx / step);
+    const slice = allRecords.filter((_, i) => i % step === 0).slice(0, visCount);
+    trainPhChart.data.labels = slice.map(r => `G${r.dayOfSim + 1}`);
+    trainPhChart.data.datasets[0].data = slice.map(r => r.real_ph);
+    trainPhChart.data.datasets[1].data = slice.map(r => clampPh(r.pred_ph));
+    trainPhChart.update('none');
+    trainEcChart.data.labels = slice.map(r => `G${r.dayOfSim + 1}`);
+    trainEcChart.data.datasets[0].data = slice.map(r => r.real_ec);
+    trainEcChart.data.datasets[1].data = slice.map(r => clampEc(r.pred_ec));
+    trainEcChart.update('none');
+
+    // Show RMSE up to proportional epoch
+    const epochSoFar = Math.floor(playbackIdx / allRecords.length * rmseHistory.length);
+    const rSlice = rmseHistory.slice(0, epochSoFar);
+    const win = Math.max(3, Math.floor(rSlice.length / 20));
+    const smPh = rSlice.map((_, i) => {
+      const s2 = rSlice.slice(Math.max(0, i - win), i + 1);
+      return +(s2.reduce((a, r) => a + r.rmse_ph, 0) / s2.length).toFixed(4);
+    });
+    errorChart.data.labels = rSlice.map(r => `E${r.epoch}`);
+    errorChart.data.datasets[0].data = smPh;
+    errorChart.data.datasets[1].data = rSlice.map((_, i) => {
+      const s2 = rSlice.slice(Math.max(0, i - win), i + 1);
+      return +(s2.reduce((a, r) => a + r.rmse_ec, 0) / s2.length).toFixed(4);
+    });
+    errorChart.update('none');
+
+    if (playbackIdx >= allRecords.length - 1) {
+      isPlaying = false; clearInterval(playbackTimer);
+      document.getElementById('play-btn').textContent = '▶';
+      buildTrainCharts(); // restore full charts
+    }
+  }, 50);
+}
+
+function setPlaybackSpeed(s) {
+  playbackSpeed = s;
+  document.querySelectorAll('.speed-chip').forEach(b =>
+    b.classList.toggle('active', parseInt(b.textContent) === s));
+  if (isPlaying) runPlayback();
+}
+
+function scrubTo(val) {
+  playbackIdx = parseInt(val);
+  document.getElementById('playback-info').textContent =
+    `${playbackIdx.toLocaleString()} / ${allRecords.length.toLocaleString()} kayıt — Gün ${allRecords[playbackIdx]?.dayOfSim + 1 || '?'}`;
+}
+
+// ─── INFERENCE ────────────────────────────────────────────────────────────────
+let scenarioHistory = [];
+
+function liveInference() {
+  const model  = trainedModel || freshModel();
+  const wtemp  = parseFloat(document.getElementById('i-wtemp').value);
+  const level  = parseFloat(document.getElementById('i-level').value);
+  const flow   = parseFloat(document.getElementById('i-flow').value);
+  const plants = parseInt(document.getElementById('i-plants').value);
+  const vol    = parseFloat(document.getElementById('i-vol').value);
+
+  const { pred_ph, pred_ec } = virtualSensor(wtemp, level, flow, plants, vol, 72, model);
+  const phConf = calcConfidence(model, { wtemp, level, flow, plants, vol }, trainingStats);
+  const ecConf = Math.max(35, phConf - Math.random() * 5);
+
+  document.getElementById('infer-ph').textContent = pred_ph.toFixed(2);
+  document.getElementById('infer-ec').textContent = pred_ec.toFixed(2);
+  document.getElementById('infer-ph-conf').style.width = phConf + '%';
+  document.getElementById('infer-ec-conf').style.width = ecConf + '%';
+  document.getElementById('infer-ph-conf-text').textContent = `Güven: %${phConf.toFixed(0)} ${!trainedModel ? '(kalibre edilmemiş)' : ''}`;
+  document.getElementById('infer-ec-conf-text').textContent = `Güven: %${ecConf.toFixed(0)} ${!trainedModel ? '(kalibre edilmemiş)' : ''}`;
+  document.getElementById('infer-ph').style.color =
+    pred_ph < 5.5 || pred_ph > 7.0 ? 'var(--danger)' : pred_ph < 5.8 || pred_ph > 6.8 ? 'var(--orange)' : 'var(--green)';
+  document.getElementById('infer-ec').style.color =
+    pred_ec < 0.8 || pred_ec > 3.0 ? 'var(--danger)' : 'var(--cyan)';
+}
+
+function applyScenario(key) {
+  const scenarios = {
+    home:       { vol: 80,   wtemp: 20, level: 82, flow: 5,  plants: 4  },
+    commercial: { vol: 750,  wtemp: 23, level: 62, flow: 24, plants: 36 },
+    extreme:    { vol: 180,  wtemp: 31, level: 48, flow: 9,  plants: 12 },
+    lowwater:   { vol: 200,  wtemp: 21, level: 11, flow: 8,  plants: 8  }
+  };
+  const labels = { home:'Ev Tipi', commercial:'Ticari', extreme:'Sıcak İklim', lowwater:'Düşük Su' };
+  const s = scenarios[key];
+  ['vol','wtemp','level','flow','plants'].forEach(k => {
+    const el = document.getElementById('i-' + k);
+    if (el) { el.value = s[k]; }
+    const lbl = document.getElementById('i-' + k + '-val');
+    if (lbl) lbl.textContent = s[k] + (k==='vol'?' L':k==='wtemp'?' °C':k==='level'?' %':k==='flow'?' L/dk':'');
+  });
+  document.querySelectorAll('.scenario-pill').forEach(p => p.classList.remove('active'));
+  if (event && event.target) event.target.classList.add('active');
+  liveInference();
+
+  const model = trainedModel || freshModel();
+  const { pred_ph, pred_ec } = virtualSensor(s.wtemp, s.level, s.flow, s.plants, s.vol, 72, model);
+  const conf = calcConfidence(model, s, trainingStats);
+  scenarioHistory.unshift({ label: labels[key], ...s, pred_ph: pred_ph.toFixed(2), pred_ec: pred_ec.toFixed(2), conf: conf.toFixed(0) });
+  if (scenarioHistory.length > 8) scenarioHistory.pop();
+  document.getElementById('scenario-history').innerHTML = scenarioHistory.map(r =>
+    `<tr>
+      <td style="color:var(--green)">${r.label}</td>
+      <td>${r.vol}L</td><td>${r.wtemp}°C</td><td>${r.level}%</td>
+      <td style="color:var(--green)">${r.pred_ph}</td>
+      <td style="color:var(--cyan)">${r.pred_ec}</td>
+      <td style="color:var(--orange)">%${r.conf}</td>
+    </tr>`
+  ).join('');
+  buildSensitivityChart();
+}
+
+function buildSensitivityChart() {
+  if (!sensitivityChart) {
+    sensitivityChart = new Chart(document.getElementById('sensitivityChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [
+        { label: 'pH Tahmin', borderColor: '#606C38', borderWidth: 1.5, pointRadius: 0, tension: 0.4, data: [], yAxisID: 'y' },
+        { label: 'EC Tahmin', borderColor: '#3A6EA8', borderWidth: 1.5, pointRadius: 0, tension: 0.4, data: [], yAxisID: 'y1', borderDash: [4,3] }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        animation: { duration: 500, easing: 'easeOutQuart' },
+        plugins: { legend: { labels: { color: '#606C38', font: { family: 'DM Sans', size: 10 } } } },
+        scales: {
+          x: { ticks: { color: '#8A9070', font: { size: 9 } }, grid: { color: 'var(--border)' },
+               title: { display: true, text: 'Su Seviyesi (%)', color: '#8A9070', font: { size: 9 } } },
+          y:  { ticks: { color: '#606C38', font: { size: 9 } }, grid: { color: 'var(--border)' },
+               title: { display: true, text: 'pH', color: '#606C38', font: { size: 9 } } },
+          y1: { position: 'right', ticks: { color: '#3A6EA8', font: { size: 9 } }, grid: { drawOnChartArea: false },
+               title: { display: true, text: 'EC', color: '#3A6EA8', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+  const model  = trainedModel || freshModel();
+  const wtemp  = parseFloat(document.getElementById('i-wtemp').value);
+  const flow   = parseFloat(document.getElementById('i-flow').value);
+  const plants = parseInt(document.getElementById('i-plants').value);
+  const vol    = parseFloat(document.getElementById('i-vol').value);
+  const levels = Array.from({ length: 20 }, (_, i) => 5 + i * 5);
+  sensitivityChart.data.labels = levels.map(l => l + '%');
+  sensitivityChart.data.datasets[0].data = levels.map(l =>
+    +virtualSensor(wtemp, l, flow, plants, vol, 72, model).pred_ph.toFixed(3));
+  sensitivityChart.data.datasets[1].data = levels.map(l =>
+    +virtualSensor(wtemp, l, flow, plants, vol, 72, model).pred_ec.toFixed(3));
+  sensitivityChart.update();
+}
+
+// ─── LIVE TEST SLOT SELECTOR ─────────────────────────────────────────────────
+let activeLtSlot = 'A';
+
+function selectLtSlot(slot) {
+  activeLtSlot = slot;
+  document.querySelectorAll('[data-lt-slot]').forEach(b => {
+    b.classList.toggle('active', b.dataset.ltSlot === slot);
+  });
+  updateLtSlotUI();
+}
+
+function updateLtSlotUI() {
+  Object.keys(modelSlots).forEach(slot => {
+    const info = document.getElementById(`lt-slot-info-${slot}`);
+    const btn  = document.querySelector(`[data-lt-slot="${slot}"]`);
+    if (!info || !btn) return;
+    if (modelSlots[slot]) {
+      btn.classList.add('filled');
+      info.textContent = `${(modelSlots[slot].recordCount/1000).toFixed(0)}K · pH:${modelSlots[slot].lastRmse}`;
+    } else {
+      btn.classList.remove('filled');
+      info.textContent = 'Boş';
+    }
+    btn.classList.toggle('active', slot === activeLtSlot);
+  });
+}
+
+// ─── LIVE TEST ────────────────────────────────────────────────────────────────
+let liveTestRunning = false;
+let liveTestTimer = null;
+let liveTestTick = 0;
+let liveTestModel = null;
+let liveTestRecords = [];
+let liveTestPhysState = { ph: 6.4, ec: 1.1 };
+let liveTestPrevLevel = 90;
+
+function initLiveTest() {
+  if (!document.getElementById('ltChart')) return;
+  if (!liveTestChart) {
+    liveTestChart = new Chart(document.getElementById('ltChart'), {
+      type: 'line',
+      data: { labels: [], datasets: [
+        { label: 'Gerçek pH', borderColor: '#606C38', borderWidth: 1.5, pointRadius: 0, tension: 0.3, data: [], yAxisID: 'y' },
+        { label: 'Sanal Sensör pH', borderColor: '#3A6EA8', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, tension: 0.3, data: [], yAxisID: 'y' },
+        { label: 'Gerçek EC', borderColor: '#D4882A', borderWidth: 1.5, pointRadius: 0, tension: 0.3, data: [], yAxisID: 'y1' },
+        { label: 'Sanal Sensör EC', borderColor: '#E0B870', borderWidth: 1.5, borderDash: [5,3], pointRadius: 0, tension: 0.3, data: [], yAxisID: 'y1' }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: { legend: { labels: { color: '#606C38', font: { family: 'DM Sans', size: 10 } } } },
+        scales: {
+          x:  { ticks: { color: '#8A9070', maxTicksLimit: 12, font: { size: 9 } }, grid: { color: 'var(--border)' } },
+          y:  { ticks: { color: '#606C38', font: { size: 9 } }, grid: { color: 'var(--border)' },
+                title: { display: true, text: 'pH', color: '#606C38', font: { size: 9 } } },
+          y1: { position: 'right', ticks: { color: '#D4882A', font: { size: 9 } }, grid: { drawOnChartArea: false },
+                title: { display: true, text: 'EC (mS/cm)', color: '#D4882A', font: { size: 9 } } }
+        }
+      }
+    });
+  }
+}
+
+function startLiveTest() {
+  const slotData = modelSlots[activeLtSlot];
+  if (!slotData) {
+    alert(`Slot ${activeLtSlot} boş — önce bu slot için eğitim yapın!`);
+    return;
+  }
+  liveTestRunning = true;
+  liveTestTick = 0;
+  liveTestRecords = [];
+  liveTestModel = { ...slotData.model };
+  liveTestPhysState = initPhysicsState();
+  liveTestPrevLevel = 90;
+  liveTestChart.data.labels = [];
+  liveTestChart.data.datasets.forEach(d => d.data = []);
+  document.getElementById('lt-log').innerHTML = '';
+  document.getElementById('btn-lt-start').disabled = true;
+  document.getElementById('btn-lt-stop').disabled = false;
+  ltLog(`Slot ${activeLtSlot} modeli yüklendi (${slotData.recordCount.toLocaleString()} kayıtla eğitildi)`, 'ok');
+  ltLog('Canlı test başlatıldı', 'ok');
+  runLiveTest();
+}
+
+function stopLiveTest() {
+  liveTestRunning = false;
+  clearInterval(liveTestTimer);
+  document.getElementById('btn-lt-start').disabled = false;
+  document.getElementById('btn-lt-stop').disabled = true;
+  ltLog(`Test durduruldu — ${liveTestTick} ölçüm`, 'warn');
+}
+
+function runLiveTest() {
+  if (liveTestTimer) clearInterval(liveTestTimer);
+  const ltSpeed = parseInt(document.getElementById('lt-speed').value) || 1;
+  // Each real second = ltSpeed simulated minutes
+  liveTestTimer = setInterval(() => {
+    if (!liveTestRunning) return;
+    const vol    = parseFloat(document.getElementById('lt-vol').value);
+    const flow   = parseFloat(document.getElementById('lt-flow').value);
+    const plants = parseInt(document.getElementById('lt-plants').value) || 8;
+    const t_hours = liveTestTick * ltSpeed / 60;
+    const dayOfSim = Math.floor(t_hours / 24);
+    const hourOfDay = t_hours % 24;
+    const dayNight = 3.5 * Math.sin((hourOfDay - 6) / 24 * 2 * Math.PI);
+    const wtemp = Math.max(10, Math.min(34, 20 + dayNight + (Math.random() - 0.5) * 0.5));
+    const evapRate = (0.08 + (wtemp - 20) * 0.004) * ltSpeed / 60;
+    const prevLevel = liveTestPrevLevel;
+    let level = Math.max(8, Math.min(100, prevLevel - evapRate + (Math.random() - 0.5) * 0.08));
+    if (level < 22) { level = 85; ltLog(`Otomatik su takviyesi yapıldı (seviye kritik)`, 'warn'); }
+    liveTestPrevLevel = level;
+
+    const { real_ph, real_ec } = simPhysicsStep(
+      liveTestPhysState, wtemp, level, prevLevel, flow, plants, vol, t_hours, ltSpeed
+    );
+    liveTestPhysState.ph = real_ph;
+    liveTestPhysState.ec = real_ec;
+    const { pred_ph, pred_ec } = virtualSensor(wtemp, level, flow, plants, vol, t_hours, liveTestModel);
+
+    liveTestTick++;
+    liveTestRecords.push({ tick: liveTestTick, wtemp, level, real_ph, real_ec, pred_ph, pred_ec });
+
+    const label = `${String(Math.floor(hourOfDay)).padStart(2,'0')}:${String(Math.floor((hourOfDay%1)*60)).padStart(2,'0')} G${dayOfSim+1}`;
+    // Keep max 200 points on chart
+    if (liveTestChart.data.labels.length > 200) {
+      liveTestChart.data.labels.shift();
+      liveTestChart.data.datasets.forEach(d => d.data.shift());
+    }
+    liveTestChart.data.labels.push(label);
+    liveTestChart.data.datasets[0].data.push(+real_ph.toFixed(3));
+    liveTestChart.data.datasets[1].data.push(+pred_ph.toFixed(3));
+    liveTestChart.data.datasets[2].data.push(+real_ec.toFixed(3));
+    liveTestChart.data.datasets[3].data.push(+pred_ec.toFixed(3));
+    liveTestChart.update('none');
+
+    // Live metrics
+    document.getElementById('lt-real-ph').textContent  = real_ph.toFixed(2);
+    document.getElementById('lt-pred-ph').textContent  = pred_ph.toFixed(2);
+    document.getElementById('lt-real-ec').textContent  = real_ec.toFixed(2);
+    document.getElementById('lt-pred-ec').textContent  = pred_ec.toFixed(2);
+    document.getElementById('lt-wtemp').textContent    = wtemp.toFixed(1) + '°C';
+    document.getElementById('lt-level').textContent    = level.toFixed(0) + '%';
+    const errPH = Math.abs(real_ph - pred_ph);
+    const errEC = Math.abs(real_ec - pred_ec);
+    document.getElementById('lt-err-ph').textContent  = errPH.toFixed(3);
+    document.getElementById('lt-err-ec').textContent  = errEC.toFixed(3);
+    document.getElementById('lt-err-ph').style.color  = errPH < 0.1 ? 'var(--green)' : errPH < 0.25 ? 'var(--orange)' : 'var(--danger)';
+    document.getElementById('lt-err-ec').style.color  = errEC < 0.1 ? 'var(--green)' : errEC < 0.25 ? 'var(--orange)' : 'var(--danger)';
+
+    // Alert thresholds
+    if (real_ph < 5.5) ltLog(`⚠ pH kritik düşük: ${real_ph.toFixed(2)} — pH Up dozajı gerekli`, 'danger');
+    if (real_ph > 7.2) ltLog(`⚠ pH yüksek: ${real_ph.toFixed(2)} — pH Down dozajı gerekli`, 'warn');
+    if (real_ec > 3.0) ltLog(`⚠ EC yüksek: ${real_ec.toFixed(2)} mS/cm — seyreltme gerekli`, 'warn');
+    if (real_ec < 0.7) ltLog(`⚠ EC düşük: ${real_ec.toFixed(2)} mS/cm — besin takviyesi gerekli`, 'warn');
+  }, 1000);
+}
+
+function updateLtSpeed() {
+  if (liveTestRunning) {
+    clearInterval(liveTestTimer);
+    runLiveTest();
+  }
+}
+
+function ltLog(msg, type = 'info') {
+  const box = document.getElementById('lt-log');
+  if (!box) return;
+  const colors = { ok:'var(--green)', info:'var(--cyan)', warn:'var(--orange)', danger:'var(--danger)' };
+  const t = new Date().toLocaleTimeString('tr-TR', { hour12: false });
+  box.innerHTML += `<div style="color:${colors[type]}">[${t}] ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ─── DATA VIEWER ──────────────────────────────────────────────────────────────
+let dvPage = 0;
+const DV_PER_PAGE = 50;
+
+async function renderDataTable(page = 0) {
+  dvPage = page;
+  const total = await db.olcumler.count();
+  const records = await db.olcumler.offset(page * DV_PER_PAGE).limit(DV_PER_PAGE).toArray();
+  document.getElementById('dv-total').textContent = `Toplam ${total.toLocaleString()} kayıt`;
+  document.getElementById('dv-page').textContent  = `Sayfa ${page + 1} / ${Math.ceil(total / DV_PER_PAGE)}`;
+  document.getElementById('dv-prev').disabled = page === 0;
+  document.getElementById('dv-next').disabled = (page + 1) * DV_PER_PAGE >= total;
+  const tbody = document.getElementById('dv-tbody');
+  if (!records.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted)">Veri yok — önce Öğrenme Fazı\'nı çalıştırın</td></tr>'; return; }
+  tbody.innerHTML = records.map(r => {
+    const errPH = Math.abs(r.real_ph - r.pred_ph);
+    const errEC = Math.abs(r.real_ec - r.pred_ec);
+    const phColor = errPH < 0.1 ? 'var(--green)' : errPH < 0.25 ? 'var(--orange)' : 'var(--danger)';
+    const ecColor = errEC < 0.1 ? 'var(--green)' : errEC < 0.25 ? 'var(--orange)' : 'var(--danger)';
+    return `<tr>
+      <td>${r.id}</td>
+      <td>G${(r.dayOfSim||0)+1} ${String(Math.floor(r.hourOfDay||0)).padStart(2,'0')}:00</td>
+      <td>${r.wtemp}</td>
+      <td>${r.level}%</td>
+      <td style="color:var(--green)">${r.real_ph}</td>
+      <td style="color:var(--cyan)">${r.pred_ph}</td>
+      <td style="color:${phColor}">${errPH.toFixed(3)}</td>
+      <td style="color:var(--yellow)">${r.real_ec}</td>
+      <td style="color:var(--orange)">${r.pred_ec}</td>
+      <td style="color:${ecColor}">${errEC.toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── TRAINING LOG ─────────────────────────────────────────────────────────────
+function trainLog(msg, type = 'info') {
+  const box = document.getElementById('trainLogBox');
+  if (!box) return;
+  const colors = { ok: 'var(--green)', info: 'var(--cyan)', warn: 'var(--orange)', danger: 'var(--danger)' };
+  const t = new Date().toLocaleTimeString('tr-TR', { hour12: false });
+  box.innerHTML += `<div style="color:${colors[type]||colors.info}">[${t}] ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ─── SYSTEM SUMMARY (live view) ───────────────────────────────────────────────
+function updateSysSummary() {
+  const el = document.getElementById('sysSummary');
+  if (!el) return;
+  el.innerHTML = [
+    `pH: <span style="color:var(--green)">${S.ph.toFixed(2)}</span>`,
+    `EC: <span style="color:var(--cyan)">${S.ec.toFixed(2)} mS/cm</span>`,
+    `Su Seviyesi: <span style="color:var(--cyan)">${S.mainLevel.toFixed(0)}%</span>`,
+    `Pompa: <span style="color:${S.pumpOn ? 'var(--green)' : 'var(--danger)'}">${S.pumpOn ? 'AKTİF' : 'KAPALI'}</span>`,
+    `LED: <span style="color:${S.ledOn ? 'var(--yellow)' : 'var(--muted)'}">${S.ledOn ? 'AKTİF' : 'KAPALI'}</span>`,
+  ].join('<br>');
+}
+setInterval(updateSysSummary, 2000);
+
+// ─── SCALE PRESETS ────────────────────────────────────────────────────────────
+const SCALES = {
+  small:  { vol: 50,  flow: 4,  plants: 4,   days: 30, freq: 5, label: '50L · 4 bitki · 30g' },
+  medium: { vol: 200, flow: 8,  plants: 20,  days: 60, freq: 5, label: '200L · 20 bitki · 60g' },
+  large:  { vol: 800, flow: 20, plants: 100, days: 90, freq: 5, label: '800L · 100 bitki · 90g' }
+};
+function applyScale(key) {
+  const s = SCALES[key];
+  document.getElementById('p-vol').value    = s.vol;   document.getElementById('p-vol-val').textContent   = s.vol + ' L';
+  document.getElementById('p-flow').value   = s.flow;  document.getElementById('p-flow-val').textContent  = s.flow + ' L/dk';
+  document.getElementById('p-plants').value = s.plants;
+  document.getElementById('p-days').value   = s.days;  document.getElementById('p-days-val').textContent  = s.days + ' gün';
+  document.getElementById('p-freq').value   = s.freq;  document.getElementById('p-freq-val').textContent  = s.freq + ' dk/ölçüm';
+  syncAppendInputs('days');
+  trainLog(`Ölçek: ${key.toUpperCase()} — ${s.label}`, 'info');
+}
+
+// ─── MODEL SLOTS ──────────────────────────────────────────────────────────────
+const modelSlots = { A: null, B: null, C: null };
+let activeSlot = 'A';
+
+// Canlı Sistem'in kullandığı tank hacmi/bitki sayısı, o an aktif olan modelin
+// eğitildiği konfigürasyonla eşleşir. Bu, "hangi model seçiliyse canlı sistem de
+// onu yansıtsın" senkronizasyonunun tek kaynağıdır.
+let liveTwinConfig = { vol: S.tankVol, flow: S.pumpFlow, plants: S.plants.length };
+
+function resizePlants(n) {
+  n = Math.max(1, Math.min(150, Math.round(n)));
+  if (n === S.plants.length) return;
+  if (n < S.plants.length) {
+    S.plants.length = n; // trim, keep existing plant states for the ones that remain
+  } else {
+    while (S.plants.length < n) S.plants.push({ growth: 0, health: 1, leaf: 0, root: 0 });
+  }
+}
+
+function applyLiveTwinConfig() {
+  S.tankVol = liveTwinConfig.vol;
+  S.pumpFlow = liveTwinConfig.flow;
+  resizePlants(liveTwinConfig.plants);
+  trainLog(`Canlı Sistem güncellendi — ${liveTwinConfig.vol}L, ${liveTwinConfig.plants} bitki (Model Slot ${activeSlot} konfigürasyonu)`, 'info');
+}
+
+function selectSlot(slot) {
+  activeSlot = slot;
+  if (modelSlots[slot]) {
+    trainedModel  = { ...modelSlots[slot].model };
+    rmseHistory   = [...modelSlots[slot].rmseHistory];
+    trainingStats = modelSlots[slot].stats ? { ...modelSlots[slot].stats } : null;
+    allRecords    = modelSlots[slot].records || [];
+    if (modelSlots[slot].config) {
+      liveTwinConfig = { ...modelSlots[slot].config };
+      applyLiveTwinConfig();
+    }
+    trainLog(`Slot ${slot} yüklendi — ${allRecords.length.toLocaleString()} kayıt | RMSE pH:${rmseHistory.at(-1)?.rmse_ph?.toFixed(4) ?? '—'}`, 'ok');
+    buildTrainCharts();
+    setupPlayback(allRecords.length);
+  } else {
+    trainLog(`Slot ${slot} boş — yeni eğitim başlatabilirsiniz`, 'info');
+  }
+  updateSlotUI();
+}
+
+function saveToSlot(slot) {
+  if (!trainedModel) return;
+  modelSlots[slot] = {
+    model:       { ...trainedModel },
+    rmseHistory: [...rmseHistory],
+    stats:       trainingStats ? { ...trainingStats } : null,
+    records:     allRecords,
+    config:      { ...liveTwinConfig },
+    savedAt:     new Date().toLocaleTimeString('tr-TR', { hour12: false }),
+    recordCount: allRecords.length,
+    lastRmse:    rmseHistory.at(-1)?.rmse_ph?.toFixed(4) ?? '—'
+  };
+  updateSlotUI();
+  updateLtSlotUI();
+  trainLog(`Model Slot ${slot}'e kaydedildi — ${allRecords.length.toLocaleString()} kayıt`, 'ok');
+}
+
+function updateSlotUI() {
+  Object.keys(modelSlots).forEach(slot => {
+    const btn  = document.querySelector(`[data-slot="${slot}"]`);
+    const info = document.getElementById(`slot-info-${slot}`);
+    if (!btn || !info) return;
+    if (modelSlots[slot]) {
+      btn.classList.add('filled');
+      info.textContent = `${(modelSlots[slot].recordCount / 1000).toFixed(0)}K kayıt · pH:${modelSlots[slot].lastRmse}`;
+    } else {
+      btn.classList.remove('filled');
+      info.textContent = 'Boş';
+    }
+    btn.classList.toggle('active', slot === activeSlot);
+  });
+}
+
+// ─── APPEND INPUT SYNC ────────────────────────────────────────────────────────
+function syncAppendInputs(source) {
+  const freqMin = parseInt(document.getElementById('p-freq').value) || 5;
+  const recPerDay = (24 * 60) / freqMin;
+
+  if (source === 'days') {
+    const days = parseFloat(document.getElementById('append-days').value) || 1;
+    const recs = Math.round(days * recPerDay);
+    document.getElementById('append-records').value = recs;
+    document.getElementById('append-day-val').textContent = days;
+    document.getElementById('append-rec-val').textContent = recs.toLocaleString('tr-TR');
+  } else {
+    const recs = parseInt(document.getElementById('append-records').value) || 100;
+    const days = (recs / recPerDay).toFixed(1);
+    document.getElementById('append-days').value = days;
+    document.getElementById('append-day-val').textContent = days;
+    document.getElementById('append-rec-val').textContent = recs.toLocaleString('tr-TR');
+  }
+}
+
+// Init append inputs on freq slider change
+function onFreqChange(val) {
+  document.getElementById('p-freq-val').textContent = val + ' dk/ölçüm';
+  syncAppendInputs('days'); // recalculate records
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+async function resetSimulation() {
+  if (!confirm('Tüm eğitim verileri ve model sıfırlanacak. Devam?')) return;
+  try {
+    await db.olcumler.clear();
+    await db.model_state.clear();
+    await db.events.clear();
+  } catch(e) {
+    // If DB schema conflict, delete and recreate
+    await Dexie.delete('FarmGoSimDB');
+  }
+  allRecords = [];
+  rmseHistory = [];
+  trainedModel = null;
+  trainingStats = null;
+  [trainPhChart, trainEcChart, errorChart].forEach(c => {
+    if (!c) return;
+    c.data.labels = [];
+    c.data.datasets.forEach(d => d.data = []);
+    c.update('none');
+  });
+  document.getElementById('train-progress').style.width = '0%';
+  document.getElementById('db-status-text').textContent = 'IndexedDB sıfırlandı — hazır';
+  document.getElementById('m-records').textContent = '0';
+  document.getElementById('m-rmse').textContent = '—';
+  document.getElementById('m-accuracy').textContent = '—';
+  document.getElementById('m-epochs').textContent = '0';
+  document.getElementById('trainLogBox').innerHTML = '';
+  document.getElementById('formula-display').innerHTML =
+    `pH = <span class="const">6.550</span> + <span class="var">k_temp</span>·(T−20) + <span class="var">k_level</span>·(100−seviye) + <span class="var">k_uptake</span>·√bitki·t<br>
+EC = <span class="const">1.200</span> + <span class="var">k_ec_evap</span>·(100−seviye)/100 − <span class="var">k_ec_uptake</span>·√bitki·t<br>
+<span style="color:var(--muted)">katsayılar henüz kalibre edilmedi</span>`;
+  setupPlayback(0);
+  trainLog('Simülasyon sıfırlandı', 'warn');
+}
+
+// ─── CONTROLS ────────────────────────────────────────────────────────────────
+function setSpeed(s) {
+  S.speed = s;
+  document.querySelectorAll('.speed-btn').forEach((b,i) => b.classList.toggle('active', [1,5,10][i]===s));
+}
+
+// ─── PROGRESSIVE DISCLOSURE (TIERS) ───────────────────────────────────────────
+// Varsayılan: sadece canvas görünür. Jüri/izleyici önce sade sistemi görür,
+// sonra istenildikçe "Veriler / Durumlar / Kontrol" katmanları açılır.
+const tierState = { track: false, adjust: false, control: false };
+function toggleTier(tier) {
+  tierState[tier] = !tierState[tier];
+  document.querySelectorAll(`[data-tier="${tier}"]`).forEach(el => {
+    el.style.display = tierState[tier] ? '' : 'none';
+  });
+  const btn = document.getElementById('tierbtn-' + tier);
+  if (btn) btn.classList.toggle('active', tierState[tier]);
+  updateTierLayout();
+}
+function updateTierLayout() {
+  const leftW  = tierState.track ? '300px' : '0px';
+  const rightW = (tierState.adjust || tierState.control) ? '260px' : '0px';
+  const layoutEl = document.getElementById('view-live');
+  if (layoutEl) layoutEl.style.gridTemplateColumns = `${leftW} minmax(0, 1fr) ${rightW}`;
+  resizeCanvas(); // canvas alanı büyüyüp küçüldüğü için çizim tamponu yeniden boyutlanmalı
+}
+
+function toggleAuto() {
+  S.autoMode = document.getElementById('autoMode').checked;
+  document.getElementById('autoStatus').textContent = S.autoMode ? 'Sistem otonom dozajlama yapıyor.' : 'Manuel mod — otomatik dozajlama kapalı.';
+  log(S.autoMode ? 'Otonom mod aktif' : 'Manuel moda geçildi', 'info');
+}
+function manualTap(action) {
+  switch(action) {
+    case 'water':
+      S.chlorLevel = 100; S.chlorConc = 100;
+      log('Çeşme suyu eklendi — Klor tankı dolduruldu (%100)', 'ok');
+      break;
+    case 'pump':
+      S.pumpManual = !S.pumpManual;
+      S.pumpOn = S.pumpManual;
+      log(`Pompa ${S.pumpManual ? 'manuel açıldı' : 'manuel kapatıldı / otomatiğe döndü'}`, 'info');
+      break;
+    case 'nutAB':
+      S.nutAOn = true; S.nutBOn = true; S.nutATimer = 20;
+      S.ec = Math.min(3.5, S.ec + 0.12);
+      addDrip('nutA'); addDrip('nutB');
+      log('Manuel — A+B besini dozlandı', 'info');
+      break;
+    case 'phdown':
+      S.phdownOn = true; S.phdownTimer = 10;
+      S.ph = Math.max(4.0, S.ph - 0.2);
+      addDrip('phdown');
+      log('Manuel — pH Down dozlandı', 'info');
+      break;
+    case 'transfer':
+      if (S.chlorConc < 5) {
+        S.mainLevel = Math.min(100, S.mainLevel + 15);
+        S.chlorLevel = Math.max(0, S.chlorLevel - 15);
+        S.valveOn = true; S.valveTimer = 10;
+        log('Manuel — Klor tankı → Ana tank transfer yapıldı', 'ok');
+      } else {
+        log('Klor henüz uçmadı! (%' + S.chlorConc.toFixed(1) + ' kaldı)', 'danger');
+      }
+      break;
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+log('FarmGo simülasyonu başlatıldı', 'ok');
+log('Otonom mod aktif — sensörler izleniyor', 'info');
+draw();
+setInterval(physicsStep, 1000);
+// Collapse the side panels to the "canvas-only" starting view now — AFTER the
+// canvas has already been sized and drawn once against the default (real,
+// definite-width) grid layout. Doing it in this order guarantees resizeCanvas()
+// always has valid dimensions to measure the very first time it runs.
+updateTierLayout();
+// Init DB
+db.open().then(() => {
+  const el = document.getElementById('db-status-text');
+  if (el) el.textContent = 'IndexedDB hazır — bekleniyor';
+}).catch(async e => {
+  console.warn('DB açma hatası, sıfırlanıyor:', e);
+  try {
+    if (typeof Dexie !== 'undefined' && Dexie.delete) await Dexie.delete('FarmGoSimDB');
+    await db.open();
+    const el = document.getElementById('db-status-text');
+    if (el) el.textContent = 'IndexedDB yeniden oluşturuldu';
+  } catch (e2) {
+    console.warn('IndexedDB kalıcı olarak kullanılamıyor (file:// kısıtlaması olabilir) — simülasyon kalıcı depolama olmadan devam ediyor.', e2);
+    const el = document.getElementById('db-status-text');
+    if (el) el.textContent = 'IndexedDB kullanılamıyor — bu oturum kalıcı olmayacak';
+  }
+});
+// Init append inputs with default values
+setTimeout(() => syncAppendInputs('days'), 100);
+
+</script>
+</body>
+</html>
